@@ -31,6 +31,22 @@ I client ricevono solo URL firmati che scadono dopo `PHOTOS_URL_TTL_MINUTES` min
 - `PhotoPolicy` risponde **404** per le foto di altre famiglie, così non se ne rivela l'esistenza. L'elenco filtra per `family_id` e la navigazione precedente/successiva resta nella stessa famiglia.
 - I test in `tests/Feature/TenantIsolationTest.php` coprono lettura, modifica, cancellazione, elenco, navigazione e upload tra famiglie diverse.
 
+## Accesso in sola lettura (`families.access_mode`)
+
+Ogni famiglia sceglie come esporre le proprie foto in lettura. La scrittura (upload, modifica, cancellazione, inviti) resta **sempre** riservata ai membri autenticati, in ogni modalità.
+
+| `access_mode` | Lettura pubblica |
+| --- | --- |
+| `private` (default) | Nessuna: le rotte pubbliche rispondono 404, esattamente come per una famiglia inesistente. |
+| `password` | Serve la password condivisa, scambiata con un token di sola lettura. |
+| `public` | Chiunque abbia il link legge le foto. |
+
+Le bozze (`is_draft`) non sono mai visibili sulle rotte pubbliche, qualunque query string venga passata.
+
+Il token di sola lettura è **stateless**, senza tabella di revoca: è una stringa cifrata con la `APP_KEY` (AES-256 con HMAC) che contiene id famiglia, scadenza e un'impronta dell'hash della password corrente. Cambiare la password condivisa, o uscire dalla modalità `password` (che azzera l'hash), cambia l'impronta e invalida di colpo tutti i token già emessi. Rispetto alla data di cambio password non soffre della granularità al secondo e copre anche la semplice rotazione della password. Ruotare la `APP_KEY` invalida anch'essa tutti i token.
+
+Il token non è un token Sanctum e non è accettato dalle rotte autenticate: per scrivere serve sempre un account vero.
+
 ## Piani e limiti
 
 - Tabella `plans` (`max_photos`, `max_storage_mb`, `price_monthly_cents`, `is_active`), dove `null` vuol dire nessun limite.
@@ -80,6 +96,17 @@ Tutte le rotte hanno il prefisso `/api`, rispondono in JSON e, salvo dove indica
 | POST | `/photos` | `multipart/form-data`: `image` (jpg/png/webp, max `PHOTOS_MAX_UPLOAD_KB`), `data` (YYYY-MM-DD), `didascalia?`, `data_speciale?`, `is_draft?`. |
 | PATCH | `/photos/{id}` | `data?`, `didascalia?`, `data_speciale?`, `is_draft?` (solo metadati). |
 | DELETE | `/photos/{id}` | Cancella la foto e il file su R2. |
+| PATCH | `/family/access-mode` | Solo admin. `access_mode` (`private\|password\|public`), `password` (obbligatoria e min 8 caratteri con `password`). |
+
+Rotte pubbliche, senza autenticazione Sanctum, soggette a `families.access_mode`:
+
+| Metodo | Rotta | Note |
+| --- | --- | --- |
+| POST | `/public/{family_slug}/verify-password` | Solo in modalità `password` (altrimenti 404). `password` → `{ token, expires_at }`, token valido 7 giorni (`PUBLIC_TOKEN_TTL_DAYS`). Max 5 tentativi al minuto per IP. |
+| GET | `/public/{family_slug}/photos` | Stessi filtri (`anno`, `speciali`, `ordine`, `per_page`), bozze sempre escluse. |
+| GET | `/public/{family_slug}/photos/{id}` | Con `precedente` e `successiva`. |
+
+In modalità `password` il token va passato come `Authorization: Bearer <token>` (consigliato) oppure `?access_token=<token>`; senza token la risposta è 401. Le foto pubbliche usano gli stessi `image_url` firmati a scadenza, ma non espongono `uploaded_by`.
 
 Esempio di foto:
 

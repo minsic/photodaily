@@ -29,5 +29,14 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('invites', function (Request $request) {
             return Limit::perMinute(10)->by($request->ip());
         });
+
+        // Bruteforce sulla password condivisa di una famiglia.
+        RateLimiter::for('public-password', function (Request $request) {
+            return Limit::perMinute(5)->by($request->ip());
+        });
+
+        RateLimiter::for('public', function (Request $request) {
+            return Limit::perMinute(120)->by($request->ip());
+        });
     }
 }

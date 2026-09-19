@@ -21,6 +21,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Public read-only access
+    |--------------------------------------------------------------------------
+    |
+    | Durata del token di sola lettura rilasciato alle famiglie in modalità
+    | "password" (vedi App\Services\FamilyReadTokens).
+    |
+    */
+
+    'public_token_ttl_days' => (int) env('PUBLIC_TOKEN_TTL_DAYS', 7),
+
+    /*
+    |--------------------------------------------------------------------------
     | Plans
     |--------------------------------------------------------------------------
     */

@@ -22,21 +22,12 @@ class PhotoController extends Controller
     public function index(IndexPhotosRequest $request): AnonymousResourceCollection
     {
         $stato = $request->input('stato', 'pubblicate');
-        $ordine = $request->input('ordine', 'desc');
 
-        $photos = Photo::query()
-            ->where('family_id', $request->user()->family_id)
-            ->when($stato !== 'tutte', fn ($query) => $query->where('is_draft', $stato === 'bozze'))
-            ->when($request->filled('anno'), function ($query) use ($request) {
-                $anno = $request->integer('anno');
-
-                $query->whereBetween('data', ["{$anno}-01-01", "{$anno}-12-31"]);
-            })
-            ->when($request->boolean('speciali'), fn ($query) => $query->where('data_speciale', true))
-            ->orderBy('data', $ordine)
-            ->orderBy('id', $ordine)
-            ->paginate($request->integer('per_page', 50))
-            ->withQueryString();
+        $photos = $request->applyFilters(
+            Photo::query()
+                ->where('family_id', $request->user()->family_id)
+                ->when($stato !== 'tutte', fn ($query) => $query->where('is_draft', $stato === 'bozze')),
+        )->paginate($request->perPage())->withQueryString();
 
         return PhotoResource::collection($photos);
     }

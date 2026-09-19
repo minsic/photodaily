@@ -47,7 +47,8 @@ class PhotoResource extends JsonResource
             'image_url' => app(PhotoStorage::class)->temporaryUrl($this->resource),
             'width' => $this->width,
             'height' => $this->height,
-            'uploaded_by' => $this->uploaded_by,
+            // Sulle rotte pubbliche non si espone chi ha caricato la foto.
+            'uploaded_by' => $this->when($request->user() !== null, fn () => $this->uploaded_by),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
             $this->mergeWhen($this->withNavigation, fn () => [
