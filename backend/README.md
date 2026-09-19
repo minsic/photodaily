@@ -108,7 +108,9 @@ Tutte le rotte hanno il prefisso `/api`, rispondono in JSON e, salvo dove indica
 | POST | `/login` | `email`, `password`, `device_name?` → `{ token, user }`. Limite di 5 tentativi al minuto. |
 | POST | `/logout` | Revoca il token corrente. |
 | GET | `/me` | Utente, famiglia, piano, `photos_count`, `storage_used_mb`. |
+| GET | `/invites` | Solo admin. Inviti della propria famiglia con `stato` (pendente/accettato/scaduto) e scadenza. |
 | POST | `/invites` | Solo admin. `email` → invia l'email di invito e restituisce anche il link (`data.url`). |
+| DELETE | `/invites/{id}` | Solo admin. Revoca un invito non ancora accettato (422 se già accettato, 404 se di un'altra famiglia). |
 | GET | `/invites/{token}` | Pubblica. Email e nome della famiglia, per la pagina di accettazione. |
 | POST | `/invites/{token}/accept` | Pubblica. `name`, `password`, `password_confirmation` → crea il membro e restituisce `{ token, user }`. |
 | GET | `/photos` | Paginata, solo `thumbnail_url`. Filtri: `anno`, `speciali=1`, `stato=pubblicate\|bozze\|tutte` (default `pubblicate`), `ordine=asc\|desc` (default `desc`), `per_page` (max 500). |
@@ -125,6 +127,7 @@ Rotte pubbliche, senza autenticazione Sanctum, soggette a `families.access_mode`
 | --- | --- | --- |
 | POST | `/public/{family_slug}/verify-password` | Solo in modalità `password` (altrimenti 404). `password` → `{ token, expires_at }`, token valido 7 giorni (`PUBLIC_TOKEN_TTL_DAYS`). Max 5 tentativi al minuto per IP. |
 | GET | `/public/{family_slug}/photos` | Stessi filtri (`anno`, `speciali`, `ordine`, `per_page`), solo miniature, bozze sempre escluse. |
+| GET | `/public/{family_slug}/photos/anni` | Anni con foto pubblicate, per il selettore della vista pubblica. |
 | GET | `/public/{family_slug}/photos/{id}` | Con `precedente` e `successiva`. |
 
 In modalità `password` il token va passato come `Authorization: Bearer <token>` (consigliato) oppure `?access_token=<token>`; senza token la risposta è 401. Le foto pubbliche usano gli stessi `image_url` firmati a scadenza, ma non espongono `uploaded_by`.
@@ -152,4 +155,4 @@ Esempio di foto:
 }
 ```
 
-Il link di invito punta a `{families.app_url || FRONTEND_URL}/invito/{token}` (percorso configurabile con `INVITE_PATH`). Nel database si salva solo l'hash SHA-256 del token.
+Il link di invito punta a `{families.app_url || FRONTEND_URL}/invite/{token}` (percorso configurabile con `INVITE_PATH`). Nel database si salva solo l'hash SHA-256 del token.

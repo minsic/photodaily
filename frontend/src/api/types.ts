@@ -75,6 +75,37 @@ export interface LoginResponse {
   user: User
 }
 
+export type InviteStatus = 'pendente' | 'accettato' | 'scaduto'
+
+export interface Invite {
+  id: number
+  email: string
+  stato: InviteStatus
+  expires_at: string
+  accepted_at: string | null
+  invitato_da?: string | null
+}
+
+/** Risposta alla creazione di un invito: include il link da condividere. */
+export interface CreatedInvite {
+  id: number
+  email: string
+  expires_at: string
+  url: string
+}
+
+export interface InvitePreview {
+  email: string
+  family: { name: string }
+  expires_at: string
+}
+
+export interface ReadAccess {
+  token: string
+  expires_at: string
+  family: { name: string; slug: string }
+}
+
 export interface PhotoFilters {
   anno?: number | null
   speciali?: boolean

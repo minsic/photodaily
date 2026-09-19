@@ -1,10 +1,16 @@
 import { api } from './client'
 import type {
+  AccessMode,
+  CreatedInvite,
+  Family,
+  Invite,
+  InvitePreview,
   LoginResponse,
   Paginated,
   Photo,
   PhotoFilters,
   PhotoPayload,
+  ReadAccess,
   User,
   YearSummary,
 } from './types'
@@ -28,15 +34,7 @@ export const auth = {
 
 export const photos = {
   list(filters: PhotoFilters = {}) {
-    return api<Paginated<Photo>>('/photos', {
-      query: {
-        anno: filters.anno,
-        speciali: filters.speciali ? 1 : undefined,
-        stato: filters.stato,
-        ordine: filters.ordine,
-        per_page: filters.per_page,
-      },
-    })
+    return api<Paginated<Photo>>('/photos', { query: photoQuery(filters) })
   },
 
   years() {
@@ -71,6 +69,89 @@ export const photos = {
   remove(id: number) {
     return api<void>(`/photos/${id}`, { method: 'DELETE' })
   },
+}
+
+export const invites = {
+  list() {
+    return api<{ data: Invite[] }>('/invites').then((response) => response.data)
+  },
+
+  create(email: string) {
+    return api<{ data: CreatedInvite }>('/invites', { method: 'POST', body: { email } }).then(
+      (response) => response.data,
+    )
+  },
+
+  revoke(id: number) {
+    return api<void>(`/invites/${id}`, { method: 'DELETE' })
+  },
+
+  /** Pagina pubblica di accettazione: nessuna autenticazione. */
+  preview(token: string) {
+    return api<{ data: InvitePreview }>(`/invites/${encodeURIComponent(token)}`, { token: null }).then(
+      (response) => response.data,
+    )
+  },
+
+  accept(token: string, payload: { name: string; password: string; password_confirmation: string }) {
+    return api<LoginResponse>(`/invites/${encodeURIComponent(token)}/accept`, {
+      method: 'POST',
+      body: { ...payload, device_name: deviceName() },
+      token: null,
+    })
+  },
+}
+
+export const family = {
+  setAccessMode(accessMode: AccessMode, password?: string) {
+    return api<{ data: Family }>('/family/access-mode', {
+      method: 'PATCH',
+      body: { access_mode: accessMode, ...(password ? { password } : {}) },
+    }).then((response) => response.data)
+  },
+}
+
+/**
+ * Diario in sola lettura. `token` è quello ottenuto con la password condivisa
+ * (null quando la famiglia è pubblica): non è mai il token dell'utente.
+ */
+export const publicDiary = {
+  unlock(slug: string, password: string) {
+    return api<ReadAccess>(`/public/${encodeURIComponent(slug)}/verify-password`, {
+      method: 'POST',
+      body: { password },
+      token: null,
+    })
+  },
+
+  years(slug: string, token: string | null) {
+    return api<{ data: YearSummary[] }>(`/public/${encodeURIComponent(slug)}/photos/anni`, {
+      token,
+    }).then((response) => response.data)
+  },
+
+  list(slug: string, token: string | null, filters: PhotoFilters = {}) {
+    return api<Paginated<Photo>>(`/public/${encodeURIComponent(slug)}/photos`, {
+      token,
+      query: photoQuery(filters),
+    })
+  },
+
+  get(slug: string, token: string | null, id: number) {
+    return api<{ data: Photo }>(`/public/${encodeURIComponent(slug)}/photos/${id}`, { token }).then(
+      (response) => response.data,
+    )
+  },
+}
+
+function photoQuery(filters: PhotoFilters) {
+  return {
+    anno: filters.anno,
+    speciali: filters.speciali ? 1 : undefined,
+    stato: filters.stato,
+    ordine: filters.ordine,
+    per_page: filters.per_page,
+  }
 }
 
 function deviceName(): string {

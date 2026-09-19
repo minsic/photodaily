@@ -6,12 +6,17 @@ use App\Enums\Role;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\AcceptInviteRequest;
 use App\Http\Requests\StoreInviteRequest;
+use App\Http\Resources\InviteResource;
 use App\Http\Resources\UserResource;
 use App\Models\Invite;
 use App\Models\User;
 use App\Notifications\FamilyInvitation;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -19,6 +24,32 @@ use Illuminate\Validation\ValidationException;
 class InviteController extends Controller
 {
     private const INVALID_INVITE = 'Invito non valido, già utilizzato o scaduto.';
+
+    /**
+     * Inviti della propria famiglia, per la sezione impostazioni. Solo admin.
+     */
+    public function index(Request $request): AnonymousResourceCollection
+    {
+        Gate::authorize('viewAny', Invite::class);
+
+        return InviteResource::collection(
+            $request->user()->family->invites()->with('inviter')->latest()->get(),
+        );
+    }
+
+    /**
+     * Annulla un invito non ancora accettato. Solo admin della sua famiglia.
+     */
+    public function destroy(Invite $invite): Response
+    {
+        Gate::authorize('delete', $invite);
+
+        abort_if($invite->accepted_at !== null, 422, 'Questo invito è già stato accettato.');
+
+        $invite->delete();
+
+        return response()->noContent();
+    }
 
     public function store(StoreInviteRequest $request): JsonResponse
     {

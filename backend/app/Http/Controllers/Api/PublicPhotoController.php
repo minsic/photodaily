@@ -9,6 +9,7 @@ use App\Http\Resources\PhotoResource;
 use App\Models\Family;
 use App\Models\Photo;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
@@ -28,6 +29,13 @@ class PublicPhotoController extends Controller
         return PhotoResource::collection($photos);
     }
 
+    public function years(Request $request): JsonResponse
+    {
+        return response()->json([
+            'data' => Photo::publishedYearsFor($this->family($request)->id),
+        ]);
+    }
+
     public function show(Request $request, string $familySlug, int $photo): PhotoResource
     {
         $photo = $this->publishedPhotos($request)->findOrFail($photo);
@@ -40,11 +48,16 @@ class PublicPhotoController extends Controller
      */
     private function publishedPhotos(Request $request): Builder
     {
+        return Photo::query()
+            ->where('family_id', $this->family($request)->id)
+            ->where('is_draft', false);
+    }
+
+    private function family(Request $request): Family
+    {
         /** @var Family $family */
         $family = $request->attributes->get(EnsurePublicFamilyAccess::FAMILY);
 
-        return Photo::query()
-            ->where('family_id', $family->id)
-            ->where('is_draft', false);
+        return $family;
     }
 }

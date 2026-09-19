@@ -7,6 +7,8 @@ declare module 'vue-router' {
   interface RouteMeta {
     /** Pagine raggiungibili senza essere autenticati. */
     guest?: boolean
+    /** Pagine riservate agli amministratori della famiglia. */
+    admin?: boolean
   }
 }
 
@@ -42,6 +44,35 @@ const router = createRouter({
       props: (route) => ({ id: Number(route.params.id) }),
     },
     {
+      path: '/impostazioni',
+      name: 'settings',
+      component: () => import('@/views/SettingsView.vue'),
+      meta: { admin: true },
+    },
+    {
+      // "/invito/..." resta valido per i link già mandati per email.
+      path: '/invite/:token',
+      alias: '/invito/:token',
+      name: 'accept-invite',
+      component: () => import('@/views/AcceptInviteView.vue'),
+      props: true,
+      meta: { guest: true },
+    },
+    {
+      path: '/pub/:slug',
+      name: 'public-timeline',
+      component: () => import('@/views/PublicTimelineView.vue'),
+      props: true,
+      meta: { guest: true },
+    },
+    {
+      path: '/pub/:slug/foto/:id(\\d+)',
+      name: 'public-photo',
+      component: () => import('@/views/PublicPhotoView.vue'),
+      props: (route) => ({ slug: String(route.params.slug), id: Number(route.params.id) }),
+      meta: { guest: true },
+    },
+    {
       path: '/:pathMatch(.*)*',
       name: 'not-found',
       component: () => import('@/views/NotFoundView.vue'),
@@ -65,7 +96,13 @@ router.beforeEach(async (to) => {
     return to.name === 'login' && auth.isLoggedIn ? { name: 'timeline' } : true
   }
 
-  return auth.isLoggedIn ? true : { name: 'login', query: { redirect: to.fullPath } }
+  if (!auth.isLoggedIn) {
+    return { name: 'login', query: { redirect: to.fullPath } }
+  }
+
+  // Le impostazioni famiglia sono solo per gli admin: l'API le rifiuterebbe
+  // comunque, ma così non si mostra una pagina che non si può usare.
+  return to.meta.admin && !auth.isAdmin ? { name: 'timeline' } : true
 })
 
 export default router

@@ -17,10 +17,13 @@ export const useAuthStore = defineStore('auth', () => {
   const family = computed(() => user.value?.family ?? null)
 
   async function login(email: string, password: string): Promise<void> {
-    const response = await authApi.login(email, password)
+    applySession(await authApi.login(email, password))
+  }
 
-    setToken(response.token)
-    user.value = response.user
+  /** Apre la sessione con quanto restituito da login o accettazione invito. */
+  function applySession(session: { token: string; user: User }): void {
+    setToken(session.token)
+    user.value = session.user
     ready.value = true
   }
 
@@ -60,5 +63,17 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem(TOKEN_KEY)
   }
 
-  return { token, user, ready, isLoggedIn, isAdmin, family, login, restore, logout, clear }
+  return {
+    token,
+    user,
+    ready,
+    isLoggedIn,
+    isAdmin,
+    family,
+    login,
+    applySession,
+    restore,
+    logout,
+    clear,
+  }
 })

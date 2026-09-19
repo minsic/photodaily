@@ -34,6 +34,12 @@ interface RequestOptions {
   body?: unknown
   query?: Record<string, QueryValue>
   signal?: AbortSignal
+  /**
+   * Token da usare al posto di quello dell'utente: una stringa per il token
+   * di sola lettura del diario pubblico, `null` per non autenticarsi affatto.
+   * Quando è impostato, un 401 non chiude la sessione dell'utente.
+   */
+  token?: string | null
 }
 
 let readToken: () => string | null = () => null
@@ -62,7 +68,8 @@ function buildUrl(path: string, query?: Record<string, QueryValue>): string {
 
 export async function api<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const { method = 'GET', body, query, signal } = options
-  const token = readToken()
+  const usesUserToken = options.token === undefined
+  const token = usesUserToken ? readToken() : options.token
   const isFormData = body instanceof FormData
 
   const headers: Record<string, string> = { Accept: 'application/json' }
@@ -102,7 +109,7 @@ export async function api<T>(path: string, options: RequestOptions = {}): Promis
     return payload as T
   }
 
-  if (response.status === 401) {
+  if (response.status === 401 && usesUserToken) {
     handleUnauthorized()
   }
 

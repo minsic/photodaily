@@ -23,6 +23,18 @@ class Invite extends Model
     }
 
     /**
+     * Stato leggibile dell'invito, per l'elenco in impostazioni.
+     */
+    public function status(): string
+    {
+        return match (true) {
+            $this->accepted_at !== null => 'accettato',
+            $this->expires_at->isPast() => 'scaduto',
+            default => 'pendente',
+        };
+    }
+
+    /**
      * Invito ancora utilizzabile corrispondente al token in chiaro.
      *
      * @param  Builder<self>  $query

@@ -1,13 +1,21 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { RouterLink } from 'vue-router'
+import { RouterLink, type RouteLocationRaw } from 'vue-router'
 
 import type { Photo } from '@/api/types'
 import AppIcon from '@/components/AppIcon.vue'
 import { usePhotosStore } from '@/stores/photos'
 import { formatDayAndMonth } from '@/utils/date'
 
-const props = defineProps<{ photo: Photo }>()
+const props = defineProps<{
+  photo: Photo
+  /** Dove porta la foto: la timeline pubblica usa le proprie rotte. */
+  to?: RouteLocationRaw
+}>()
+
+const target = computed<RouteLocationRaw>(
+  () => props.to ?? { name: 'photo', params: { id: props.photo.id } },
+)
 
 const photos = usePhotosStore()
 const loaded = ref(false)
@@ -37,7 +45,7 @@ async function onError(): Promise<void> {
     />
     <span class="absolute bottom-0 left-[5px] top-6 w-0.5 bg-line" aria-hidden="true" />
 
-    <RouterLink :to="{ name: 'photo', params: { id: photo.id } }" class="block pb-8">
+    <RouterLink :to="target" class="block pb-8">
       <div class="flex items-center gap-2">
         <time :datetime="photo.data" class="text-sm font-bold uppercase tracking-wide text-muted">
           {{ formatDayAndMonth(photo.data) }}

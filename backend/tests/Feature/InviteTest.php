@@ -31,7 +31,7 @@ class InviteTest extends TestCase
             ->assertJsonPath('data.email', 'nonna@example.com');
 
         $url = $response->json('data.url');
-        $this->assertMatchesRegularExpression('#^https://giopellino\.it/invito/[A-Za-z0-9]{64}$#', $url);
+        $this->assertMatchesRegularExpression('#^https://giopellino\.it/invite/[A-Za-z0-9]{64}$#', $url);
 
         $invite = Invite::sole();
         $plainToken = basename($url);
@@ -47,6 +47,89 @@ class InviteTest extends TestCase
             fn (FamilyInvitation $notification, array $channels, AnonymousNotifiable $notifiable) => $notifiable->routes['mail'] === 'nonna@example.com'
                 && $notification->url === $url,
         );
+    }
+
+    public function test_admin_sees_the_invites_of_their_own_family_with_status_and_expiry(): void
+    {
+        $family = Family::factory()->create();
+        $admin = User::factory()->admin()->for($family)->create();
+
+        $pending = Invite::factory()->for($family)->create(['email' => 'nonna@example.com', 'invited_by' => $admin->id]);
+        $accepted = Invite::factory()->for($family)->accepted()->create(['email' => 'zio@example.com']);
+        $expired = Invite::factory()->for($family)->expired()->create(['email' => 'zia@example.com']);
+        $altrui = Invite::factory()->create(['email' => 'estranea@example.com']);
+
+        Sanctum::actingAs($admin);
+
+        $response = $this->getJson('/api/invites')->assertOk();
+
+        $this->assertEqualsCanonicalizing(
+            [$pending->id, $accepted->id, $expired->id],
+            $response->json('data.*.id'),
+            'Gli inviti delle altre famiglie non compaiono.',
+        );
+        $this->assertNotContains($altrui->id, $response->json('data.*.id'));
+
+        $byEmail = collect($response->json('data'))->keyBy('email');
+        $this->assertSame('pendente', $byEmail['nonna@example.com']['stato']);
+        $this->assertSame('accettato', $byEmail['zio@example.com']['stato']);
+        $this->assertSame('scaduto', $byEmail['zia@example.com']['stato']);
+        $this->assertNotEmpty($byEmail['nonna@example.com']['expires_at']);
+        $this->assertSame($admin->name, $byEmail['nonna@example.com']['invitato_da']);
+
+        // Il token non esce mai dall'API.
+        $this->assertArrayNotHasKey('token', $byEmail['nonna@example.com']);
+    }
+
+    public function test_members_cannot_list_or_revoke_invites(): void
+    {
+        $family = Family::factory()->create();
+        $invite = Invite::factory()->for($family)->create();
+
+        Sanctum::actingAs(User::factory()->for($family)->create());
+
+        $this->getJson('/api/invites')->assertForbidden();
+        $this->deleteJson("/api/invites/{$invite->id}")->assertForbidden();
+
+        $this->assertModelExists($invite);
+    }
+
+    public function test_admin_can_revoke_a_pending_invite(): void
+    {
+        $family = Family::factory()->create();
+        $invite = Invite::factory()->for($family)->withToken('token-segreto')->create();
+
+        Sanctum::actingAs(User::factory()->admin()->for($family)->create());
+
+        $this->deleteJson("/api/invites/{$invite->id}")->assertNoContent();
+
+        $this->assertModelMissing($invite);
+        $this->getJson('/api/invites/token-segreto')->assertNotFound();
+    }
+
+    public function test_an_accepted_invite_cannot_be_revoked(): void
+    {
+        $family = Family::factory()->create();
+        $invite = Invite::factory()->for($family)->accepted()->create();
+
+        Sanctum::actingAs(User::factory()->admin()->for($family)->create());
+
+        $this->deleteJson("/api/invites/{$invite->id}")
+            ->assertUnprocessable()
+            ->assertJsonPath('message', 'Questo invito è già stato accettato.');
+
+        $this->assertModelExists($invite);
+    }
+
+    public function test_an_admin_cannot_revoke_invites_of_another_family(): void
+    {
+        $invite = Invite::factory()->create();
+
+        Sanctum::actingAs(User::factory()->admin()->create());
+
+        $this->deleteJson("/api/invites/{$invite->id}")->assertNotFound();
+
+        $this->assertModelExists($invite);
     }
 
     public function test_members_cannot_invite(): void

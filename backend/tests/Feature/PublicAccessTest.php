@@ -101,6 +101,29 @@ class PublicAccessTest extends TestCase
         return [['public'], ['password']];
     }
 
+    public function test_public_view_can_list_the_years(): void
+    {
+        $family = $this->family(AccessMode::Public);
+        Photo::factory()->for($family)->special()->create(['data' => '2024-01-01']);
+        Photo::factory()->for($family)->create(['data' => '2024-02-01']);
+        Photo::factory()->for($family)->create(['data' => '2023-02-01']);
+        Photo::factory()->for($family)->draft()->create(['data' => '2022-02-01']);
+
+        $this->getJson('/api/public/giopellino/photos/anni')
+            ->assertOk()
+            ->assertExactJson(['data' => [
+                ['anno' => 2024, 'foto' => 2, 'speciali' => 1],
+                ['anno' => 2023, 'foto' => 1, 'speciali' => 0],
+            ]]);
+    }
+
+    public function test_years_are_not_exposed_by_a_private_family(): void
+    {
+        $this->family(AccessMode::Private);
+
+        $this->getJson('/api/public/giopellino/photos/anni')->assertNotFound();
+    }
+
     public function test_public_routes_expose_no_way_to_write(): void
     {
         $family = $this->family(AccessMode::Public);

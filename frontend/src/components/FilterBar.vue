@@ -1,22 +1,30 @@
 <script setup lang="ts">
+import type { YearSummary } from '@/api/types'
 import AppIcon from '@/components/AppIcon.vue'
-import { usePhotosStore } from '@/stores/photos'
 
-const photos = usePhotosStore()
+/**
+ * Barra filtri senza stato: la timeline autenticata e quella pubblica le
+ * passano i propri valori. La vista pubblica nasconde il filtro bozze.
+ */
+withDefaults(
+  defineProps<{
+    years: YearSummary[]
+    anno: number | null
+    speciali: boolean
+    bozze?: boolean
+    withDrafts?: boolean
+  }>(),
+  { bozze: false, withDrafts: true },
+)
+
+const emit = defineEmits<{
+  'update:anno': [value: number]
+  'update:speciali': [value: boolean]
+  'update:bozze': [value: boolean]
+}>()
 
 function onYearChange(event: Event): void {
-  photos.setAnno(Number((event.target as HTMLSelectElement).value))
-  void photos.load()
-}
-
-function toggleSpeciali(): void {
-  photos.toggleSpeciali()
-  void photos.load()
-}
-
-function toggleBozze(): void {
-  photos.setStato(photos.stato === 'bozze' ? 'pubblicate' : 'bozze')
-  void photos.load()
+  emit('update:anno', Number((event.target as HTMLSelectElement).value))
 }
 </script>
 
@@ -26,11 +34,11 @@ function toggleBozze(): void {
     <select
       id="anno"
       class="rounded-full border-2 border-line bg-transparent py-1.5 pl-3 pr-8 text-sm font-bold text-ink disabled:opacity-50"
-      :value="photos.anno ?? ''"
-      :disabled="photos.stato === 'bozze' || photos.years.length === 0"
+      :value="anno ?? ''"
+      :disabled="bozze || years.length === 0"
       @change="onYearChange"
     >
-      <option v-for="year in photos.years" :key="year.anno" :value="year.anno">
+      <option v-for="year in years" :key="year.anno" :value="year.anno">
         {{ year.anno }} · {{ year.foto }} foto
       </option>
     </select>
@@ -38,28 +46,21 @@ function toggleBozze(): void {
     <button
       type="button"
       class="flex items-center gap-1.5 rounded-full border-2 px-3 py-1.5 text-sm font-bold transition"
-      :class="
-        photos.soloSpeciali
-          ? 'border-brick bg-brick text-white'
-          : 'border-line text-muted hover:text-ink'
-      "
-      :aria-pressed="photos.soloSpeciali"
-      @click="toggleSpeciali"
+      :class="speciali ? 'border-brick bg-brick text-white' : 'border-line text-muted hover:text-ink'"
+      :aria-pressed="speciali"
+      @click="emit('update:speciali', !speciali)"
     >
-      <AppIcon name="star" :filled="photos.soloSpeciali" class="size-4" />
+      <AppIcon name="star" :filled="speciali" class="size-4" />
       Speciali
     </button>
 
     <button
+      v-if="withDrafts"
       type="button"
       class="rounded-full border-2 px-3 py-1.5 text-sm font-bold transition"
-      :class="
-        photos.stato === 'bozze'
-          ? 'border-azure bg-azure text-white'
-          : 'border-line text-muted hover:text-ink'
-      "
-      :aria-pressed="photos.stato === 'bozze'"
-      @click="toggleBozze"
+      :class="bozze ? 'border-azure bg-azure text-white' : 'border-line text-muted hover:text-ink'"
+      :aria-pressed="bozze"
+      @click="emit('update:bozze', !bozze)"
     >
       Bozze
     </button>

@@ -55,7 +55,7 @@ return [
 
     'frontend_url' => env('FRONTEND_URL', 'http://localhost:5173'),
 
-    'invite_path' => env('INVITE_PATH', '/invito/{token}'),
+    'invite_path' => env('INVITE_PATH', '/invite/{token}'),
 
     'invite_ttl_days' => (int) env('INVITE_TTL_DAYS', 7),
 

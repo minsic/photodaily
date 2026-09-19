@@ -18,7 +18,7 @@ L'origine del dev server deve comparire in `CORS_ALLOWED_ORIGINS` nel `.env` del
 
 - `src/api/` — client `fetch` tipizzato (`client.ts`) e chiamate raggruppate per risorsa (`index.ts`). Gli errori diventano `ApiError` con messaggio già pronto e `errors` di validazione per campo; su 401 la sessione viene chiusa e si torna al login.
 - `src/stores/` — `auth` (token in `localStorage`, utente, ripristino all'avvio), `photos` (anni, filtri, elenco con cache per filtro), `toasts`.
-- `src/views/` — `LoginView`, `TimelineView`, `PhotoView`, `UploadView`, `EditPhotoView`, `NotFoundView`.
+- `src/views/` — `LoginView`, `TimelineView`, `PhotoView`, `UploadView`, `EditPhotoView`, `SettingsView`, `AcceptInviteView`, `PublicTimelineView`, `PublicPhotoView`, `NotFoundView`.
 - `src/components/` — `AppHeader`, `FilterBar`, `TimelineItem`, `PhotoForm`, `ConfirmDialog`, `AppIcon`, `ToastList`, `PwaUpdatePrompt`.
 - `src/utils/date.ts` — formattazione italiana con `Intl`; le date `YYYY-MM-DD` si costruiscono come date locali, altrimenti in certi fusi comparirebbe il giorno prima.
 
@@ -29,9 +29,10 @@ L'origine del dev server deve comparire in `CORS_ALLOWED_ORIGINS` nel `.env` del
 - **Miniature.** La timeline carica solo `thumbnail_url` (400px di lato lungo, circa 10-20 KB l'una); l'originale si scarica solo aprendo la foto, dove la miniatura fa da segnaposto mentre arriva.
 - **URL firmati che scadono.** `image_url` vale un'ora: se il browser non riesce più a caricare un'immagine perché la pagina è rimasta aperta a lungo, la foto viene richiesta di nuovo una volta sola per ottenere un URL fresco.
 - **Tema chiaro e scuro** dalla palette del vecchio PhotoDaily, via token CSS ridefiniti sotto `prefers-color-scheme`.
+- **Sezione impostazioni** (`/impostazioni`, solo admin): invita nuovi membri, elenca e revoca gli inviti, sceglie chi può vedere il diario e mostra il link da condividere.
+- **Diario pubblico** (`/pub/:slug`): timeline e dettaglio in sola lettura, senza alcuna azione di scrittura. In modalità password chiede la password condivisa e conserva il token di sola lettura per quello slug; se la famiglia è privata (o lo slug non esiste) mostra la stessa pagina "non è pubblico", senza distinguere i due casi. Su queste pagine, e su quella di accettazione invito, viene forzato `robots: noindex, nofollow`.
 - **PWA**: viene messo in cache solo il guscio dell'app. Le foto no: gli URL firmati cambiano a ogni richiesta, quindi una cache per URL sarebbe inutile.
 
 ## Ancora da fare
 
-- Interfaccia per inviti, modalità di accesso della famiglia e vista pubblica.
 - Barra di avanzamento durante il caricamento (serve `XMLHttpRequest`: `fetch` non espone il progresso).

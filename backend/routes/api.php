@@ -24,6 +24,7 @@ Route::prefix('public/{family_slug}')->group(function () {
 
     Route::middleware(['throttle:public', EnsurePublicFamilyAccess::class])->group(function () {
         Route::get('/photos', [PublicPhotoController::class, 'index']);
+        Route::get('/photos/anni', [PublicPhotoController::class, 'years']);
         Route::get('/photos/{photo}', [PublicPhotoController::class, 'show'])->whereNumber('photo');
     });
 });
@@ -33,7 +34,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
 
+    Route::get('/invites', [InviteController::class, 'index']);
     Route::post('/invites', [InviteController::class, 'store']);
+    Route::delete('/invites/{invite}', [InviteController::class, 'destroy'])->whereNumber('invite');
 
     Route::patch('/family/access-mode', [FamilyAccessController::class, 'update']);
 

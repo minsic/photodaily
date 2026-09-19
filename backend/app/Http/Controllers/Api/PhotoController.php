@@ -38,22 +38,9 @@ class PhotoController extends Controller
      */
     public function years(Request $request): JsonResponse
     {
-        // Il raggruppamento è in PHP: estrarre l'anno in SQL richiede funzioni
-        // diverse su SQLite, MySQL e PostgreSQL.
-        $years = Photo::query()
-            ->where('family_id', $request->user()->family_id)
-            ->where('is_draft', false)
-            ->get(['data', 'data_speciale'])
-            ->groupBy(fn (Photo $photo) => substr((string) $photo->data, 0, 4))
-            ->map(fn ($photos, string $anno) => [
-                'anno' => (int) $anno,
-                'foto' => $photos->count(),
-                'speciali' => $photos->where('data_speciale', true)->count(),
-            ])
-            ->sortByDesc('anno')
-            ->values();
-
-        return response()->json(['data' => $years]);
+        return response()->json([
+            'data' => Photo::publishedYearsFor($request->user()->family_id),
+        ]);
     }
 
     public function show(Photo $photo): PhotoResource

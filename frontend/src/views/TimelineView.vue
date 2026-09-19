@@ -16,6 +16,21 @@ const router = useRouter()
 
 const menuOpen = ref(false)
 
+function onAnno(anno: number): void {
+  photos.setAnno(anno)
+  void photos.load()
+}
+
+function onSpeciali(): void {
+  photos.toggleSpeciali()
+  void photos.load()
+}
+
+function onBozze(bozze: boolean): void {
+  photos.setStato(bozze ? 'bozze' : 'pubblicate')
+  void photos.load()
+}
+
 onMounted(async () => {
   if (photos.years.length === 0) {
     await photos.loadYears().catch(() => undefined)
@@ -79,9 +94,19 @@ async function logout(): Promise<void> {
         </div>
       </dl>
 
+      <RouterLink
+        v-if="auth.isAdmin"
+        :to="{ name: 'settings' }"
+        class="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border-2 border-line py-2 font-bold"
+        @click="menuOpen = false"
+      >
+        <AppIcon name="settings" class="size-4" />
+        Impostazioni famiglia
+      </RouterLink>
+
       <button
         type="button"
-        class="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border-2 border-line py-2 font-bold"
+        class="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border-2 border-line py-2 font-bold"
         @click="logout"
       >
         <AppIcon name="logout" class="size-4" />
@@ -91,7 +116,15 @@ async function logout(): Promise<void> {
   </div>
 
   <main class="mx-auto max-w-3xl px-4 pb-16">
-    <FilterBar />
+    <FilterBar
+      :years="photos.years"
+      :anno="photos.anno"
+      :speciali="photos.soloSpeciali"
+      :bozze="photos.stato === 'bozze'"
+      @update:anno="onAnno"
+      @update:speciali="onSpeciali"
+      @update:bozze="onBozze"
+    />
 
     <AppSpinner v-if="photos.loading" />
 
