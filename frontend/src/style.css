@@ -1,0 +1,77 @@
+@import 'tailwindcss';
+
+@font-face {
+  font-family: 'Roboto';
+  src: url('/fonts/roboto-regular-webfont.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Roboto';
+  src: url('/fonts/roboto-bold-webfont.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@theme {
+  --font-sans: 'Roboto', ui-sans-serif, system-ui, sans-serif;
+
+  /* Palette ereditata dal vecchio PhotoDaily */
+  --color-paper: #cedee9;
+  --color-card: #ffffff;
+  --color-ink: #252525;
+  --color-muted: #5b6b78;
+  --color-brick: #b83a1d;
+  --color-azure: #1d71b8;
+  --color-line: #b3c8d6;
+}
+
+/* Il tema scuro ridefinisce gli stessi token: i componenti non cambiano. */
+@media (prefers-color-scheme: dark) {
+  @theme {
+    --color-paper: #14191d;
+    --color-card: #1d242a;
+    --color-ink: #eef4f8;
+    --color-muted: #9bb0bf;
+    --color-brick: #e0714f;
+    --color-azure: #6fb1e8;
+    --color-line: #2f3a43;
+  }
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-paper text-ink font-sans antialiased;
+  }
+
+  :focus-visible {
+    @apply outline-azure outline-2 outline-offset-2;
+  }
+
+  img {
+    @apply select-none;
+  }
+}
+
+@utility card-shadow {
+  box-shadow:
+    0 1px 2px rgb(37 37 37 / 0.06),
+    0 8px 24px rgb(37 37 37 / 0.08);
+}
+
+/* Le immagini compaiono quando sono davvero caricate, senza sfarfallii. */
+@utility fade-in-img {
+  opacity: 0;
+  transition: opacity 400ms ease;
+
+  &[data-loaded='true'] {
+    opacity: 1;
+  }
+}
