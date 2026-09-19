@@ -123,6 +123,40 @@ class PhotoCrudTest extends TestCase
             ->assertJsonPath('data.is_draft', false);
     }
 
+    public function test_deleting_a_photo_keeps_an_image_still_used_by_another_photo(): void
+    {
+        // Capita con l'import: due documenti Sanity che puntano allo stesso asset.
+        $shared = "families/{$this->family->id}/photos/condivisa.jpg";
+        Storage::disk('r2')->put($shared, 'contenuto');
+
+        $first = Photo::factory()->for($this->family)->create(['image_path' => $shared, 'data' => '2024-05-01']);
+        $second = Photo::factory()->for($this->family)->create(['image_path' => $shared, 'data' => '2024-05-02']);
+
+        $this->deleteJson("/api/photos/{$first->id}")->assertNoContent();
+
+        Storage::disk('r2')->assertExists($shared);
+
+        $this->deleteJson("/api/photos/{$second->id}")->assertNoContent();
+
+        Storage::disk('r2')->assertMissing($shared);
+    }
+
+    public function test_years_endpoint_lists_only_years_with_published_photos_of_the_family(): void
+    {
+        Photo::factory()->for($this->family)->create(['data' => '2023-12-31']);
+        Photo::factory()->for($this->family)->special()->create(['data' => '2024-01-01']);
+        Photo::factory()->for($this->family)->create(['data' => '2024-02-01']);
+        Photo::factory()->for($this->family)->draft()->create(['data' => '2022-01-01']);
+        Photo::factory()->create(['data' => '2019-01-01']);
+
+        $this->getJson('/api/photos/anni')
+            ->assertOk()
+            ->assertExactJson(['data' => [
+                ['anno' => 2024, 'foto' => 2, 'speciali' => 1],
+                ['anno' => 2023, 'foto' => 1, 'speciali' => 0],
+            ]]);
+    }
+
     public function test_member_can_delete_a_photo_and_its_file(): void
     {
         $response = $this->postJson('/api/photos', [

@@ -37,5 +37,6 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::patch('/family/access-mode', [FamilyAccessController::class, 'update']);
 
-    Route::apiResource('photos', PhotoController::class);
+    Route::get('/photos/anni', [PhotoController::class, 'years']);
+    Route::apiResource('photos', PhotoController::class)->where(['photo' => '[0-9]+']);
 });

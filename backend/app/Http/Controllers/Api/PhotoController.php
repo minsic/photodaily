@@ -10,6 +10,7 @@ use App\Http\Resources\PhotoResource;
 use App\Models\Photo;
 use App\Services\PhotoStorage;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Gate;
@@ -30,6 +31,29 @@ class PhotoController extends Controller
         )->paginate($request->perPage())->withQueryString();
 
         return PhotoResource::collection($photos);
+    }
+
+    /**
+     * Anni che contengono foto pubblicate, per il selettore della timeline.
+     */
+    public function years(Request $request): JsonResponse
+    {
+        // Il raggruppamento è in PHP: estrarre l'anno in SQL richiede funzioni
+        // diverse su SQLite, MySQL e PostgreSQL.
+        $years = Photo::query()
+            ->where('family_id', $request->user()->family_id)
+            ->where('is_draft', false)
+            ->get(['data', 'data_speciale'])
+            ->groupBy(fn (Photo $photo) => substr((string) $photo->data, 0, 4))
+            ->map(fn ($photos, string $anno) => [
+                'anno' => (int) $anno,
+                'foto' => $photos->count(),
+                'speciali' => $photos->where('data_speciale', true)->count(),
+            ])
+            ->sortByDesc('anno')
+            ->values();
+
+        return response()->json(['data' => $years]);
     }
 
     public function show(Photo $photo): PhotoResource

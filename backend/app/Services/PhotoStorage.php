@@ -106,7 +106,7 @@ class PhotoStorage
         }
 
         if ($oldPath !== $path) {
-            $this->disk()->delete($oldPath);
+            $this->deleteIfUnused($oldPath);
         }
 
         return $photo;
@@ -124,7 +124,21 @@ class PhotoStorage
 
         // Il file si rimuove solo dopo il commit: se fallisse resterebbe un
         // oggetto orfano nel bucket, mai una foto senza immagine.
-        $this->disk()->delete($photo->image_path);
+        $this->deleteIfUnused($photo->image_path);
+    }
+
+    /**
+     * Rimuove l'oggetto solo se nessun'altra foto lo usa: l'import assegna un
+     * percorso deterministico all'asset Sanity, quindi due documenti che
+     * riutilizzano la stessa immagine condividono lo stesso file su R2.
+     */
+    private function deleteIfUnused(string $path): void
+    {
+        if (Photo::query()->where('image_path', $path)->exists()) {
+            return;
+        }
+
+        $this->disk()->delete($path);
     }
 
     public function temporaryUrl(Photo $photo): string
