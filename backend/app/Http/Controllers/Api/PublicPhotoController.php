@@ -32,7 +32,7 @@ class PublicPhotoController extends Controller
     {
         $photo = $this->publishedPhotos($request)->findOrFail($photo);
 
-        return PhotoResource::make($photo)->withNavigation();
+        return PhotoResource::make($photo)->withOriginal()->withNavigation();
     }
 
     /**

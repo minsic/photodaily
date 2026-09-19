@@ -26,12 +26,12 @@ L'origine del dev server deve comparire in `CORS_ALLOWED_ORIGINS` nel `.env` del
 
 - **Timeline per anno.** Il selettore usa `GET /photos/anni` e la timeline carica in un colpo solo l'anno scelto (al massimo 366 foto), come faceva il vecchio sito ma senza scaricare l'intero archivio per calcolare gli anni.
 - **Filtri**: anno, solo speciali, bozze. Le bozze restano separate dalle foto pubblicate.
+- **Miniature.** La timeline carica solo `thumbnail_url` (400px di lato lungo, circa 10-20 KB l'una); l'originale si scarica solo aprendo la foto, dove la miniatura fa da segnaposto mentre arriva.
 - **URL firmati che scadono.** `image_url` vale un'ora: se il browser non riesce più a caricare un'immagine perché la pagina è rimasta aperta a lungo, la foto viene richiesta di nuovo una volta sola per ottenere un URL fresco.
 - **Tema chiaro e scuro** dalla palette del vecchio PhotoDaily, via token CSS ridefiniti sotto `prefers-color-scheme`.
 - **PWA**: viene messo in cache solo il guscio dell'app. Le foto no: gli URL firmati cambiano a ogni richiesta, quindi una cache per URL sarebbe inutile.
 
 ## Ancora da fare
 
-- Immagini ridimensionate: la timeline scarica gli originali (anche più di 2 MB l'uno), mentre il vecchio sito usava le miniature della CDN di Sanity.
 - Interfaccia per inviti, modalità di accesso della famiglia e vista pubblica.
 - Barra di avanzamento durante il caricamento (serve `XMLHttpRequest`: `fetch` non espone il progresso).

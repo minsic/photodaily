@@ -114,7 +114,11 @@ export const usePhotosStore = defineStore('photos', () => {
     const index = items.value.findIndex((photo) => photo.id === id)
 
     if (index >= 0) {
-      items.value[index] = { ...items.value[index], image_url: fresh.image_url }
+      items.value[index] = {
+        ...items.value[index],
+        thumbnail_url: fresh.thumbnail_url,
+        image_url: fresh.image_url,
+      }
     }
   }
 

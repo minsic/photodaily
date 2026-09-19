@@ -56,7 +56,7 @@ class PublicAccessTest extends TestCase
         $response = $this->getJson('/api/public/giopellino/photos')->assertOk();
 
         $this->assertSame([$second->id, $first->id], $response->json('data.*.id'));
-        $this->assertNotEmpty($response->json('data.0.image_url'));
+        $this->assertNotEmpty($response->json('data.0.thumbnail_url'));
         $this->assertArrayNotHasKey('uploaded_by', $response->json('data.0'));
 
         $this->getJson('/api/public/giopellino/photos?anno=2024&speciali=1')

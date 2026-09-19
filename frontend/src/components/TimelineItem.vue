@@ -53,7 +53,7 @@ async function onError(): Promise<void> {
 
       <figure class="mt-2 overflow-hidden rounded-2xl bg-card card-shadow">
         <img
-          :src="photo.image_url"
+          :src="photo.thumbnail_url"
           :alt="photo.didascalia ?? `Foto del ${photo.data}`"
           :width="photo.width ?? undefined"
           :height="photo.height ?? undefined"

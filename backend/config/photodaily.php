@@ -19,6 +19,10 @@ return [
 
     'max_upload_kb' => (int) env('PHOTOS_MAX_UPLOAD_KB', 20480),
 
+    // Memoria concessa mentre si genera una miniatura: GD lavora su bitmap
+    // non compresse, quindi una foto da 12 megapixel ne chiede una sessantina di MB.
+    'thumbnail_memory_limit' => env('THUMBNAIL_MEMORY_LIMIT', '512M'),
+
     /*
     |--------------------------------------------------------------------------
     | Public read-only access

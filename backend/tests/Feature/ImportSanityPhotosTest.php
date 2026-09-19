@@ -86,7 +86,9 @@ class ImportSanityPhotosTest extends TestCase
 
         $this->assertSame(3, $this->family->photos()->count());
         $this->assertTrue(Photo::where('sanity_id', 'photo-2')->sole()->data_speciale);
-        $this->assertCount(3, Storage::disk('r2')->allFiles());
+        // Tre originali più le rispettive miniature, senza duplicati.
+        $this->assertCount(3, Storage::disk('r2')->files("families/{$this->family->id}/photos"));
+        $this->assertCount(3, Storage::disk('r2')->files("families/{$this->family->id}/photos/thumbs"));
     }
 
     public function test_dry_run_writes_nothing(): void

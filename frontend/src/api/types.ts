@@ -40,8 +40,10 @@ export interface Photo {
   data_speciale: boolean
   didascalia: string | null
   is_draft: boolean
-  /** URL firmato su R2: scade dopo un'ora. */
-  image_url: string
+  /** Miniatura (lato lungo 400px): sempre presente, è l'unica immagine negli elenchi. */
+  thumbnail_url: string
+  /** Immagine a piena risoluzione: solo sul dettaglio. URL firmato, scade dopo un'ora. */
+  image_url?: string
   width: number | null
   height: number | null
   uploaded_by?: number | null

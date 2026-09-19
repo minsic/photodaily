@@ -60,7 +60,7 @@ class PhotoController extends Controller
     {
         Gate::authorize('view', $photo);
 
-        return PhotoResource::make($photo)->withNavigation();
+        return PhotoResource::make($photo)->withOriginal()->withNavigation();
     }
 
     public function store(StorePhotoRequest $request, PhotoStorage $storage): JsonResponse
@@ -74,14 +74,14 @@ class PhotoController extends Controller
             $user,
         );
 
-        return PhotoResource::make($photo)->response()->setStatusCode(201);
+        return PhotoResource::make($photo)->withOriginal()->response()->setStatusCode(201);
     }
 
     public function update(UpdatePhotoRequest $request, Photo $photo): PhotoResource
     {
         $photo->update($request->validated());
 
-        return PhotoResource::make($photo);
+        return PhotoResource::make($photo)->withOriginal();
     }
 
     public function destroy(Photo $photo, PhotoStorage $storage): Response

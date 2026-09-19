@@ -25,6 +25,19 @@ Le immagini vanno **solo** su R2, anche in locale: per caricare foto servono le 
 
 I client ricevono solo URL firmati che scadono dopo `PHOTOS_URL_TTL_MINUTES` minuti.
 
+### Miniature
+
+Ogni foto ha, accanto all'originale, una miniatura da 400px di lato lungo (WebP se il driver la supporta, altrimenti JPEG, qualità 80) salvata in `families/{id}/photos/thumbs/`. Sull'archivio giopellino pesa circa l'1% dell'originale.
+
+- Viene generata al caricamento, con la libreria immagini di Laravel (`intervention/image`, driver GD), applicando l'orientamento EXIF.
+- Gli elenchi restituiscono **solo** `thumbnail_url`; il dettaglio restituisce anche `image_url` a piena risoluzione.
+- Finché una foto non ha la miniatura, `thumbnail_url` ripiega sull'originale, così nulla si rompe durante il recupero dello storico.
+- Le miniature rientrano nel conteggio di `families.storage_used_mb`.
+
+Durante la generazione il limite di memoria di PHP viene alzato a `THUMBNAIL_MEMORY_LIMIT` (512 MB di default): GD lavora su bitmap non compresse, e una foto da 16 megapixel ne occupa circa 64 MB, oltre i 128 MB tipici di `php.ini`.
+
+In produzione `upload_max_filesize` e `post_max_size` devono stare sopra `PHOTOS_MAX_UPLOAD_KB` (che vale 20 MB): `post_max_size` comprende anche gli altri campi del form, quindi conviene tenerlo un po' più alto del limite delle immagini.
+
 ## Multi-tenancy
 
 - Ogni utente appartiene a una famiglia (`users.family_id`). Il login restituisce un token Sanctum e la famiglia si ricava sempre dall'utente del token, mai dal dominio né dal payload.
@@ -68,7 +81,14 @@ php artisan family:create giopellino "Giopellino" --admin-email=... --admin-name
 # Importa un export Sanity (cartella con data.ndjson e images/, oppure il file .ndjson)
 php artisan photos:import giopellino /percorso/export --dry-run
 php artisan photos:import giopellino /percorso/export
+
+# Genera le miniature mancanti delle foto già caricate (circa 1 secondo a foto)
+php artisan photos:generate-thumbnails giopellino --limit=3   # prova
+php artisan photos:generate-thumbnails                        # tutte le famiglie
+php artisan photos:generate-thumbnails giopellino --force     # rigenera anche quelle presenti
 ```
+
+`photos:generate-thumbnails` salta le foto che hanno già una miniatura, quindi si può rilanciare dopo un'interruzione senza creare doppioni. Elenca le foto che non è riuscito a elaborare e in quel caso termina con exit code 1.
 
 L'import:
 - legge solo i documenti `_type: "photo"`;
@@ -91,8 +111,9 @@ Tutte le rotte hanno il prefisso `/api`, rispondono in JSON e, salvo dove indica
 | POST | `/invites` | Solo admin. `email` → invia l'email di invito e restituisce anche il link (`data.url`). |
 | GET | `/invites/{token}` | Pubblica. Email e nome della famiglia, per la pagina di accettazione. |
 | POST | `/invites/{token}/accept` | Pubblica. `name`, `password`, `password_confirmation` → crea il membro e restituisce `{ token, user }`. |
-| GET | `/photos` | Paginata. Filtri: `anno`, `speciali=1`, `stato=pubblicate\|bozze\|tutte` (default `pubblicate`), `ordine=asc\|desc` (default `desc`), `per_page` (max 500). |
-| GET | `/photos/{id}` | Include `precedente` e `successiva` (`{ id, data }` oppure `null`). |
+| GET | `/photos` | Paginata, solo `thumbnail_url`. Filtri: `anno`, `speciali=1`, `stato=pubblicate\|bozze\|tutte` (default `pubblicate`), `ordine=asc\|desc` (default `desc`), `per_page` (max 500). |
+| GET | `/photos/anni` | Anni con foto pubblicate e relativi conteggi, per il selettore della timeline. |
+| GET | `/photos/{id}` | Miniatura e originale, più `precedente` e `successiva` (`{ id, data }` oppure `null`). |
 | POST | `/photos` | `multipart/form-data`: `image` (jpg/png/webp, max `PHOTOS_MAX_UPLOAD_KB`), `data` (YYYY-MM-DD), `didascalia?`, `data_speciale?`, `is_draft?`. |
 | PATCH | `/photos/{id}` | `data?`, `didascalia?`, `data_speciale?`, `is_draft?` (solo metadati). |
 | DELETE | `/photos/{id}` | Cancella la foto e il file su R2. |
@@ -103,7 +124,7 @@ Rotte pubbliche, senza autenticazione Sanctum, soggette a `families.access_mode`
 | Metodo | Rotta | Note |
 | --- | --- | --- |
 | POST | `/public/{family_slug}/verify-password` | Solo in modalità `password` (altrimenti 404). `password` → `{ token, expires_at }`, token valido 7 giorni (`PUBLIC_TOKEN_TTL_DAYS`). Max 5 tentativi al minuto per IP. |
-| GET | `/public/{family_slug}/photos` | Stessi filtri (`anno`, `speciali`, `ordine`, `per_page`), bozze sempre escluse. |
+| GET | `/public/{family_slug}/photos` | Stessi filtri (`anno`, `speciali`, `ordine`, `per_page`), solo miniature, bozze sempre escluse. |
 | GET | `/public/{family_slug}/photos/{id}` | Con `precedente` e `successiva`. |
 
 In modalità `password` il token va passato come `Authorization: Bearer <token>` (consigliato) oppure `?access_token=<token>`; senza token la risposta è 401. Le foto pubbliche usano gli stessi `image_url` firmati a scadenza, ma non espongono `uploaded_by`.
@@ -118,6 +139,7 @@ Esempio di foto:
     "data_speciale": true,
     "didascalia": "Primo giorno al mare",
     "is_draft": false,
+    "thumbnail_url": "https://<bucket>.<account>.r2.cloudflarestorage.com/...&X-Amz-Signature=...",
     "image_url": "https://<bucket>.<account>.r2.cloudflarestorage.com/...&X-Amz-Signature=...",
     "width": 1080,
     "height": 1350,

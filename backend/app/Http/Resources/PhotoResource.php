@@ -20,6 +20,19 @@ class PhotoResource extends JsonResource
 
     private bool $withNavigation = false;
 
+    private bool $withOriginal = false;
+
+    /**
+     * Aggiunge l'URL dell'immagine a piena risoluzione: negli elenchi si manda
+     * solo la miniatura, altrimenti una schermata scarica centinaia di MB.
+     */
+    public function withOriginal(): static
+    {
+        $this->withOriginal = true;
+
+        return $this;
+    }
+
     /**
      * Include le foto precedente/successiva (stessa famiglia) per la navigazione.
      */
@@ -43,8 +56,12 @@ class PhotoResource extends JsonResource
             'data_speciale' => $this->data_speciale,
             'didascalia' => $this->didascalia,
             'is_draft' => $this->is_draft,
-            // URL firmato a scadenza: il bucket R2 resta privato.
-            'image_url' => app(PhotoStorage::class)->temporaryUrl($this->resource),
+            // URL firmati a scadenza: il bucket R2 resta privato.
+            'thumbnail_url' => app(PhotoStorage::class)->thumbnailUrl($this->resource),
+            $this->mergeWhen(
+                $this->withOriginal,
+                fn () => ['image_url' => app(PhotoStorage::class)->temporaryUrl($this->resource)],
+            ),
             'width' => $this->width,
             'height' => $this->height,
             // Sulle rotte pubbliche non si espone chi ha caricato la foto.

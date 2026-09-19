@@ -176,9 +176,13 @@ watch(() => props.id, load, { immediate: true })
     </p>
 
     <article v-else-if="photo" @touchstart.passive="onTouchStart" @touchend.passive="onTouchEnd">
-      <figure class="mt-4 overflow-hidden rounded-2xl bg-card card-shadow">
+      <!-- La miniatura fa da segnaposto sfocato finché non arriva l'originale. -->
+      <figure
+        class="mt-4 overflow-hidden rounded-2xl bg-card bg-cover bg-center card-shadow"
+        :style="imageLoaded ? undefined : { backgroundImage: `url(${photo.thumbnail_url})` }"
+      >
         <img
-          :src="photo.image_url"
+          :src="photo.image_url ?? photo.thumbnail_url"
           :alt="photo.didascalia ?? `Foto del ${photo.data}`"
           :width="photo.width ?? undefined"
           :height="photo.height ?? undefined"
