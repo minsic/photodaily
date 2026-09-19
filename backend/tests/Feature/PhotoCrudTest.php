@@ -1,0 +1,140 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\Family;
+use App\Models\Photo;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
+use Laravel\Sanctum\Sanctum;
+use Tests\TestCase;
+
+class PhotoCrudTest extends TestCase
+{
+    use RefreshDatabase;
+
+    private Family $family;
+
+    private User $user;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        Storage::fake('r2');
+
+        $this->family = Family::factory()->create();
+        $this->user = User::factory()->for($this->family)->create();
+
+        Sanctum::actingAs($this->user);
+    }
+
+    public function test_member_can_upload_a_photo_to_r2(): void
+    {
+        $image = UploadedFile::fake()->image('foto.jpg', 800, 600)->size(300);
+
+        $response = $this->postJson('/api/photos', [
+            'image' => $image,
+            'data' => '2024-05-01',
+            'didascalia' => 'Primo giorno al mare',
+            'data_speciale' => 'true',
+        ]);
+
+        $response->assertCreated()
+            ->assertJsonPath('data.data', '2024-05-01')
+            ->assertJsonPath('data.didascalia', 'Primo giorno al mare')
+            ->assertJsonPath('data.data_speciale', true)
+            ->assertJsonPath('data.is_draft', false)
+            ->assertJsonPath('data.width', 800)
+            ->assertJsonPath('data.height', 600)
+            ->assertJsonPath('data.uploaded_by', $this->user->id);
+
+        $photo = Photo::findOrFail($response->json('data.id'));
+
+        Storage::disk('r2')->assertExists($photo->image_path);
+        $this->assertSame($image->getSize(), $photo->size_bytes);
+        $this->assertNotEmpty($response->json('data.image_url'));
+    }
+
+    public function test_upload_is_validated(): void
+    {
+        $this->postJson('/api/photos', [
+            'image' => UploadedFile::fake()->create('documento.pdf', 10, 'application/pdf'),
+            'data' => '01/05/2024',
+        ])->assertUnprocessable()->assertJsonValidationErrors(['image', 'data']);
+    }
+
+    public function test_index_hides_drafts_by_default_and_filters_by_year_and_special(): void
+    {
+        $published2023 = Photo::factory()->for($this->family)->create(['data' => '2023-12-31']);
+        $special2024 = Photo::factory()->for($this->family)->special()->create(['data' => '2024-01-01']);
+        $plain2024 = Photo::factory()->for($this->family)->create(['data' => '2024-02-01']);
+        $draft = Photo::factory()->for($this->family)->draft()->create(['data' => '2024-03-01']);
+
+        $this->getJson('/api/photos')
+            ->assertOk()
+            ->assertJsonPath('data.*.id', [$plain2024->id, $special2024->id, $published2023->id]);
+
+        $this->getJson('/api/photos?anno=2024')
+            ->assertJsonPath('data.*.id', [$plain2024->id, $special2024->id]);
+
+        $this->getJson('/api/photos?speciali=1')
+            ->assertJsonPath('data.*.id', [$special2024->id]);
+
+        $this->getJson('/api/photos?stato=bozze')
+            ->assertJsonPath('data.*.id', [$draft->id]);
+
+        $this->getJson('/api/photos?ordine=asc&per_page=2')
+            ->assertJsonPath('data.*.id', [$published2023->id, $special2024->id])
+            ->assertJsonPath('meta.total', 3);
+    }
+
+    public function test_show_includes_previous_and_next_photo(): void
+    {
+        $previous = Photo::factory()->for($this->family)->create(['data' => '2024-05-01']);
+        $photo = Photo::factory()->for($this->family)->create(['data' => '2024-05-02']);
+        $next = Photo::factory()->for($this->family)->create(['data' => '2024-05-03']);
+        Photo::factory()->for($this->family)->draft()->create(['data' => '2024-05-04']);
+
+        $this->getJson("/api/photos/{$photo->id}")
+            ->assertOk()
+            ->assertJsonPath('data.precedente', ['id' => $previous->id, 'data' => '2024-05-01'])
+            ->assertJsonPath('data.successiva', ['id' => $next->id, 'data' => '2024-05-03']);
+
+        $this->getJson("/api/photos/{$next->id}")
+            ->assertJsonPath('data.successiva', null);
+    }
+
+    public function test_member_can_update_photo_metadata(): void
+    {
+        $photo = Photo::factory()->for($this->family)->draft()->create(['data' => '2024-05-01']);
+
+        $this->patchJson("/api/photos/{$photo->id}", [
+            'data' => '2024-05-02',
+            'didascalia' => 'Nuova didascalia',
+            'data_speciale' => true,
+            'is_draft' => false,
+        ])->assertOk()
+            ->assertJsonPath('data.data', '2024-05-02')
+            ->assertJsonPath('data.didascalia', 'Nuova didascalia')
+            ->assertJsonPath('data.data_speciale', true)
+            ->assertJsonPath('data.is_draft', false);
+    }
+
+    public function test_member_can_delete_a_photo_and_its_file(): void
+    {
+        $response = $this->postJson('/api/photos', [
+            'image' => UploadedFile::fake()->image('foto.jpg')->size(500),
+            'data' => '2024-05-01',
+        ])->assertCreated();
+
+        $photo = Photo::findOrFail($response->json('data.id'));
+
+        $this->deleteJson("/api/photos/{$photo->id}")->assertNoContent();
+
+        $this->assertModelMissing($photo);
+        Storage::disk('r2')->assertMissing($photo->image_path);
+    }
+}
