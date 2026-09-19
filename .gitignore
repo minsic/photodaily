@@ -1,0 +1,13 @@
+# Editor e IDE
+/.idea/
+/.vscode/
+/.zed/
+/.fleet/
+/.nova/
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# Strumenti agent locali
+/.claude/
