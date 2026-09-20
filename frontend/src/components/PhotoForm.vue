@@ -4,6 +4,7 @@ import { computed, onBeforeUnmount, reactive, ref } from 'vue'
 import type { ValidationErrors } from '@/api/client'
 import type { Photo, PhotoPayload } from '@/api/types'
 import AppIcon from '@/components/AppIcon.vue'
+import RichTextEditor from '@/components/RichTextEditor.vue'
 import { todayIso } from '@/utils/date'
 
 const props = withDefaults(
@@ -122,14 +123,11 @@ function fieldError(name: string): string | undefined {
     </div>
 
     <div>
-      <label for="didascalia" class="mb-1 block text-sm font-bold">Didascalia</label>
-      <textarea
-        id="didascalia"
+      <span id="didascalia-label" class="mb-1 block text-sm font-bold">Didascalia</span>
+      <RichTextEditor
         v-model="form.didascalia"
-        rows="3"
-        maxlength="5000"
         placeholder="Cosa è successo oggi?"
-        class="w-full rounded-xl border-2 border-line bg-card px-3 py-2 text-ink placeholder:text-muted/70"
+        aria-labelledby="didascalia-label"
       />
       <p v-if="fieldError('didascalia')" class="mt-1 text-sm text-brick">
         {{ fieldError('didascalia') }}

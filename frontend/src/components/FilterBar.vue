@@ -38,7 +38,9 @@ function onYearChange(event: Event): void {
       :disabled="bozze || years.length === 0"
       @change="onYearChange"
     >
-      <option v-for="year in years" :key="year.anno" :value="year.anno">
+      <!-- Il popup nativo non eredita il tema: senza colori espliciti nel
+           dark diventa testo chiaro su fondo bianco. -->
+      <option v-for="year in years" :key="year.anno" :value="year.anno" class="bg-card text-ink">
         {{ year.anno }} · {{ year.foto }} foto
       </option>
     </select>

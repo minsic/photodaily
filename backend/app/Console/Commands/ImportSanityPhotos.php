@@ -6,6 +6,7 @@ use App\Exceptions\PlanLimitExceededException;
 use App\Models\Family;
 use App\Models\Photo;
 use App\Services\PhotoStorage;
+use App\Support\CaptionHtml;
 use App\Support\PortableText;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
@@ -208,7 +209,9 @@ class ImportSanityPhotos extends Command
             'is_draft' => $isDraft,
             'data' => $data,
             'data_speciale' => (bool) ($document['special'] ?? false),
-            'didascalia' => PortableText::toPlainText($document['dida'] ?? null),
+            // Le didascalie si salvano in HTML: il Portable Text arriva qui
+            // già appiattito, quindi basta rivestirlo di paragrafi.
+            'didascalia' => CaptionHtml::fromPlainText(PortableText::toPlainText($document['dida'] ?? null)),
             'image' => $this->resolveImage($document['immagine'] ?? null, $baseDir),
         ];
     }

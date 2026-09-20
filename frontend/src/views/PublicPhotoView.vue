@@ -9,6 +9,7 @@ import AppIcon from '@/components/AppIcon.vue'
 import AppSpinner from '@/components/AppSpinner.vue'
 import { useNoIndex } from '@/composables/useNoIndex'
 import { usePublicDiaryStore } from '@/stores/publicDiary'
+import { captionToPlainText } from '@/utils/caption'
 import { formatLongDate, formatShortDate } from '@/utils/date'
 
 /** Dettaglio in sola lettura: nessuna azione di modifica o cancellazione. */
@@ -29,6 +30,12 @@ const ratio = computed(() =>
   photo.value?.width && photo.value.height
     ? `${photo.value.width} / ${photo.value.height}`
     : undefined,
+)
+
+const altText = computed(() =>
+  photo.value
+    ? captionToPlainText(photo.value.didascalia) || `Foto del ${photo.value.data}`
+    : '',
 )
 
 async function load(id: number): Promise<void> {
@@ -147,7 +154,7 @@ watch(() => props.id, load, { immediate: true })
       >
         <img
           :src="photo.image_url ?? photo.thumbnail_url"
-          :alt="photo.didascalia ?? `Foto del ${photo.data}`"
+          :alt="altText"
           :width="photo.width ?? undefined"
           :height="photo.height ?? undefined"
           :style="{ aspectRatio: ratio }"
@@ -164,9 +171,11 @@ watch(() => props.id, load, { immediate: true })
         <AppIcon v-if="photo.data_speciale" name="star" filled class="size-5 text-brick" />
       </div>
 
-      <p v-if="photo.didascalia" class="mt-2 whitespace-pre-line leading-relaxed text-muted">
-        {{ photo.didascalia }}
-      </p>
+      <div
+        v-if="photo.didascalia"
+        class="caption-html mt-2 leading-relaxed text-muted"
+        v-html="photo.didascalia"
+      />
 
       <nav class="mt-8 flex items-center justify-between gap-3" aria-label="Naviga tra le foto">
         <button

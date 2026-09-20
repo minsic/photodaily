@@ -52,7 +52,7 @@ class ImportSanityPhotosTest extends TestCase
         $this->assertSame('2024-01-01', $first->data);
         $this->assertTrue($first->data_speciale);
         $this->assertFalse($first->is_draft, 'La versione pubblicata vince sulla bozza con lo stesso _id.');
-        $this->assertSame("Primo giorno di scuola\nZaino più grande di lui", $first->didascalia);
+        $this->assertSame('<p>Primo giorno di scuola<br>Zaino più grande di lui</p>', $first->didascalia);
         $this->assertSame([40, 30], [$first->width, $first->height]);
         $this->assertNull($first->uploaded_by);
         $this->assertSame("families/{$this->family->id}/photos/aaa111-40x30.jpg", $first->image_path);

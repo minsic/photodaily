@@ -45,6 +45,9 @@
 @layer base {
   html {
     -webkit-text-size-adjust: 100%;
+    /* I controlli nativi (tendina del select, datepicker, scrollbar) seguono
+       il tema: senza, nel dark restano chiari e il testo ereditato sparisce. */
+    color-scheme: light dark;
   }
 
   body {
@@ -58,6 +61,35 @@
   img {
     @apply select-none;
   }
+}
+
+/* Didascalie: lo stesso aspetto nell'editor e nelle tre viste che le mostrano. */
+@utility caption-html {
+  & p + p {
+    margin-top: 0.75em;
+  }
+
+  & strong {
+    font-weight: 700;
+  }
+
+  & em {
+    font-style: italic;
+  }
+
+  & a {
+    color: var(--color-azure);
+    text-decoration: underline;
+  }
+}
+
+/* Segnaposto dell'editor: Tiptap marca il paragrafo vuoto, non c'è un input. */
+.tiptap p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+  color: color-mix(in oklab, var(--color-muted) 70%, transparent);
 }
 
 @utility card-shadow {

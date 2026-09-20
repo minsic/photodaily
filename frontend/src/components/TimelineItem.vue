@@ -5,6 +5,7 @@ import { RouterLink, type RouteLocationRaw } from 'vue-router'
 import type { Photo } from '@/api/types'
 import AppIcon from '@/components/AppIcon.vue'
 import { usePhotosStore } from '@/stores/photos'
+import { captionToPlainText, captionWithoutLinks } from '@/utils/caption'
 import { formatDayAndMonth } from '@/utils/date'
 
 const props = defineProps<{
@@ -23,6 +24,12 @@ const retried = ref(false)
 
 const ratio = computed(() =>
   props.photo.width && props.photo.height ? `${props.photo.width} / ${props.photo.height}` : '4 / 5',
+)
+
+const captionPreview = computed(() => captionWithoutLinks(props.photo.didascalia))
+
+const altText = computed(
+  () => captionToPlainText(props.photo.didascalia) || `Foto del ${props.photo.data}`,
 )
 
 /** Se l'URL firmato è scaduto mentre la pagina era aperta, se ne chiede uno nuovo. */
@@ -62,7 +69,7 @@ async function onError(): Promise<void> {
       <figure class="mt-2 overflow-hidden rounded-2xl bg-card card-shadow">
         <img
           :src="photo.thumbnail_url"
-          :alt="photo.didascalia ?? `Foto del ${photo.data}`"
+          :alt="altText"
           :width="photo.width ?? undefined"
           :height="photo.height ?? undefined"
           :style="{ aspectRatio: ratio }"
@@ -75,9 +82,11 @@ async function onError(): Promise<void> {
         />
       </figure>
 
-      <p v-if="photo.didascalia" class="mt-2 whitespace-pre-line text-sm leading-relaxed text-muted">
-        {{ photo.didascalia }}
-      </p>
+      <div
+        v-if="photo.didascalia"
+        class="caption-html mt-2 text-sm leading-relaxed text-muted"
+        v-html="captionPreview"
+      />
     </RouterLink>
   </li>
 </template>

@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests;
 
+use App\Rules\CaptionLength;
+use App\Support\CaptionHtml;
 use Illuminate\Auth\Access\Response;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -25,6 +27,10 @@ class UpdatePhotoRequest extends FormRequest
                 $this->merge([$field => $this->boolean($field)]);
             }
         }
+
+        if ($this->has('didascalia')) {
+            $this->merge(['didascalia' => CaptionHtml::sanitize($this->string('didascalia')->toString())]);
+        }
     }
 
     /**
@@ -36,7 +42,7 @@ class UpdatePhotoRequest extends FormRequest
     {
         return [
             'data' => ['sometimes', 'required', 'date_format:Y-m-d'],
-            'didascalia' => ['sometimes', 'nullable', 'string', 'max:5000'],
+            'didascalia' => ['sometimes', 'nullable', 'string', 'max:20000', new CaptionLength],
             'data_speciale' => ['sometimes', 'boolean'],
             'is_draft' => ['sometimes', 'boolean'],
         ];

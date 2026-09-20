@@ -3,6 +3,8 @@
 namespace App\Http\Requests;
 
 use App\Models\Photo;
+use App\Rules\CaptionLength;
+use App\Support\CaptionHtml;
 use Illuminate\Auth\Access\Response;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -25,6 +27,10 @@ class StorePhotoRequest extends FormRequest
                 $this->merge([$field => $this->boolean($field)]);
             }
         }
+
+        if ($this->has('didascalia')) {
+            $this->merge(['didascalia' => CaptionHtml::sanitize($this->string('didascalia')->toString())]);
+        }
     }
 
     /**
@@ -37,7 +43,9 @@ class StorePhotoRequest extends FormRequest
         return [
             'image' => ['required', 'file', 'image', 'mimes:jpg,jpeg,png,webp', 'max:'.config('photodaily.max_upload_kb')],
             'data' => ['required', 'date_format:Y-m-d'],
-            'didascalia' => ['nullable', 'string', 'max:5000'],
+            // Il tetto in caratteri sta in CaptionLength: qui resta solo una
+            // cintura di sicurezza sul peso dell'HTML sanificato.
+            'didascalia' => ['nullable', 'string', 'max:20000', new CaptionLength],
             'data_speciale' => ['sometimes', 'boolean'],
             'is_draft' => ['sometimes', 'boolean'],
         ];

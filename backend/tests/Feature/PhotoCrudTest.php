@@ -44,7 +44,7 @@ class PhotoCrudTest extends TestCase
 
         $response->assertCreated()
             ->assertJsonPath('data.data', '2024-05-01')
-            ->assertJsonPath('data.didascalia', 'Primo giorno al mare')
+            ->assertJsonPath('data.didascalia', '<p>Primo giorno al mare</p>')
             ->assertJsonPath('data.data_speciale', true)
             ->assertJsonPath('data.is_draft', false)
             ->assertJsonPath('data.width', 800)
@@ -118,7 +118,7 @@ class PhotoCrudTest extends TestCase
             'is_draft' => false,
         ])->assertOk()
             ->assertJsonPath('data.data', '2024-05-02')
-            ->assertJsonPath('data.didascalia', 'Nuova didascalia')
+            ->assertJsonPath('data.didascalia', '<p>Nuova didascalia</p>')
             ->assertJsonPath('data.data_speciale', true)
             ->assertJsonPath('data.is_draft', false);
     }
