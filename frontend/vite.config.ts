@@ -12,6 +12,11 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
+      // Service worker scritto a mano (src/sw.ts): serve per ricevere le foto
+      // condivise dalla galleria (share_target). Il precache resta lo stesso.
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.ts',
       includeAssets: ['icons/favicon.ico', 'icons/apple-touch-icon.png', 'fonts/*.woff2'],
       manifest: {
         name: 'PhotoDaily',
@@ -27,12 +32,21 @@ export default defineConfig({
           { src: '/icons/android-chrome-512x512.png', sizes: '512x512', type: 'image/png' },
           { src: '/icons/android-chrome-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
+        // "Condividi" dalla galleria (Android/Chrome con l'app installata): le
+        // foto arrivano in POST a /condividi, dove le prende il service worker.
+        share_target: {
+          action: '/condividi',
+          method: 'POST',
+          enctype: 'multipart/form-data',
+          params: {
+            files: [{ name: 'photos', accept: ['image/*'] }],
+          },
+        },
       },
-      workbox: {
+      injectManifest: {
         // Solo il guscio dell'app: le foto stanno su URL firmati che cambiano
         // a ogni richiesta, quindi metterle in cache non servirebbe a nulla.
         globPatterns: ['**/*.{js,css,html,woff2,svg,png,ico}'],
-        navigateFallbackDenylist: [/^\/api\//],
       },
     }),
   ],

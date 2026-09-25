@@ -38,6 +38,11 @@ const router = createRouter({
       component: () => import('@/views/CalendarView.vue'),
     },
     {
+      path: '/profilo',
+      name: 'profile',
+      component: () => import('@/views/ProfileView.vue'),
+    },
+    {
       path: '/recupera',
       name: 'recover',
       component: () => import('@/views/RecoverView.vue'),

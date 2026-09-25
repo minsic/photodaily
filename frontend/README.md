@@ -34,7 +34,7 @@ Frontend e API stanno sullo stesso host: in sviluppo il proxy di Vite inoltra `/
 - **Sezione impostazioni** (`/impostazioni`, solo admin): invita nuovi membri, elenca e revoca gli inviti, sceglie chi può vedere il diario e mostra il link da condividere.
 - **Indirizzo = famiglia.** All'avvio `GET /api/site` dice di quale diario è l'host (store `site`). Sull'indirizzo di una famiglia il login mostra il suo nome e, se il diario è pubblico o con password, chi non ha un account finisce direttamente sul diario in sola lettura. Un sottodominio sconosciuto mostra "Diario non trovato".
 - **Diario pubblico** (`/pub/:slug`): timeline e dettaglio in sola lettura, senza alcuna azione di scrittura. In modalità password chiede la password condivisa e conserva il token di sola lettura per quello slug; se la famiglia è privata (o lo slug non esiste) mostra la stessa pagina "non è pubblico", senza distinguere i due casi. Su queste pagine, e su quella di accettazione invito, viene forzato `robots: noindex, nofollow`.
-- **PWA**: viene messo in cache solo il guscio dell'app. Le foto no: gli URL firmati cambiano a ogni richiesta, quindi una cache per URL sarebbe inutile.
+- **PWA** (vite-plugin-pwa, `injectManifest` con `src/sw.ts`): viene messo in cache solo il guscio dell'app. Il service worker riceve anche le foto condivise dalla galleria (`share_target` → POST `/condividi` → IndexedDB → `/carica?condiviso=1`) senza mai chiamare l'API. Le foto no: gli URL firmati cambiano a ogni richiesta, quindi una cache per URL sarebbe inutile.
 
 ## Ancora da fare
 

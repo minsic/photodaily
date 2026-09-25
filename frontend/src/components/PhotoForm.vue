@@ -6,24 +6,34 @@ import type { Photo, PhotoPayload } from '@/api/types'
 import AppIcon from '@/components/AppIcon.vue'
 import CaptionTextarea from '@/components/CaptionTextarea.vue'
 import { useFamilyToday } from '@/composables/useFamilyToday'
+import { readPhotoDate } from '@/utils/photoDate'
 
 const props = withDefaults(
   defineProps<{
     photo?: Photo | null
     /** Data proposta per una foto nuova (dal calendario); altrimenti oggi, nel fuso della famiglia. */
     initialDate?: string
+    /** Foto già scelta (pulsante "Carica" o condivisione dalla galleria). */
+    initialFile?: File | null
     /** Sul caricamento si sceglie anche il file; in modifica l'immagine non si tocca. */
     withImage?: boolean
     busy?: boolean
     errors?: ValidationErrors
     submitLabel?: string
   }>(),
-  { photo: null, initialDate: undefined, withImage: false, busy: false, errors: () => ({}), submitLabel: 'Salva' },
+  { photo: null, initialDate: undefined, initialFile: null, withImage: false, busy: false, errors: () => ({}), submitLabel: 'Salva' },
 )
 
 const emit = defineEmits<{ submit: [payload: PhotoPayload, image: File | null] }>()
 
-const { today } = useFamilyToday()
+const { today, timezone } = useFamilyToday()
+
+/**
+ * La data si prende dalla foto (EXIF) finché non la sceglie qualcuno: a mano
+ * nel campo, o arrivando dal calendario con un giorno preciso.
+ */
+const dateTouched = ref(Boolean(props.initialDate) || Boolean(props.photo))
+const dateFromPhoto = ref(false)
 
 const form = reactive({
   data: props.photo?.data ?? props.initialDate ?? today(),
@@ -47,12 +57,37 @@ const fileSize = computed(() => {
 })
 
 function onFileChange(event: Event): void {
-  const file = (event.target as HTMLInputElement).files?.[0] ?? null
+  useFile((event.target as HTMLInputElement).files?.[0] ?? null)
+}
 
+function useFile(file: File | null): void {
   releasePreview()
   image.value = file
   preview.value = file ? URL.createObjectURL(file) : null
   missingImage.value = false
+
+  if (file && props.withImage && !dateTouched.value) {
+    void applyDateFromPhoto(file)
+  }
+}
+
+async function applyDateFromPhoto(file: File): Promise<void> {
+  const { date, certain } = await readPhotoDate(file, timezone())
+
+  // Solo una data di scatto vera, non nel futuro, e se nel frattempo nessuno l'ha cambiata.
+  if (certain && date <= today() && !dateTouched.value && image.value === file) {
+    form.data = date
+    dateFromPhoto.value = true
+  }
+}
+
+function onDateInput(): void {
+  dateTouched.value = true
+  dateFromPhoto.value = false
+}
+
+if (props.initialFile) {
+  useFile(props.initialFile)
 }
 
 function onSubmit(): void {
@@ -121,8 +156,11 @@ function fieldError(name: string): string | undefined {
         v-model="form.data"
         type="date"
         required
+        :max="today()"
         class="w-full rounded-xl border-2 border-line bg-card px-3 py-2 text-ink"
+        @input="onDateInput"
       />
+      <p v-if="dateFromPhoto" class="mt-1 text-sm text-muted">Il giorno in cui è stata scattata.</p>
       <p v-if="fieldError('data')" class="mt-1 text-sm text-brick">{{ fieldError('data') }}</p>
     </div>
 

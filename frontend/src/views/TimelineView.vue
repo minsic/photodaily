@@ -10,6 +10,7 @@ import TimelineItem from '@/components/TimelineItem.vue'
 import { useInfiniteScroll } from '@/composables/useInfiniteScroll'
 import { useRefreshWhenVisible } from '@/composables/useRefreshWhenVisible'
 import { useAuthStore } from '@/stores/auth'
+import { useIncomingFilesStore } from '@/stores/incomingFiles'
 import { usePhotosStore } from '@/stores/photos'
 
 const auth = useAuthStore()
@@ -17,6 +18,19 @@ const photos = usePhotosStore()
 const router = useRouter()
 
 const menuOpen = ref(false)
+const incoming = useIncomingFilesStore()
+
+async function onQuickPick(event: Event): Promise<void> {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+
+  input.value = ''
+
+  if (file) {
+    incoming.put([file])
+    await router.push({ name: 'upload' })
+  }
+}
 
 // Tornando alla PWA dopo un po' gli URL delle immagini sarebbero scaduti.
 useRefreshWhenVisible(() => photos.refreshIfStale())
@@ -68,13 +82,15 @@ async function logout(): Promise<void> {
       >
         <AppIcon name="calendar" class="size-4" />
       </RouterLink>
-      <RouterLink
-        :to="{ name: 'upload' }"
-        class="flex items-center gap-1 rounded-full bg-brick px-3 py-1.5 text-sm font-bold text-white"
+      <!-- Un tap e si apre subito il selettore: galleria o fotocamera (su iPhone
+           il foglio "Libreria foto / Scatta foto"). La foto passa poi al form. -->
+      <label
+        class="flex cursor-pointer items-center gap-1 rounded-full bg-brick px-3 py-1.5 text-sm font-bold text-white focus-within:ring-2 focus-within:ring-brick/40"
       >
         <AppIcon name="plus" class="size-4" />
         Carica
-      </RouterLink>
+        <input type="file" accept="image/*" class="sr-only" @change="onQuickPick" />
+      </label>
 
       <button
         type="button"
@@ -119,6 +135,15 @@ async function logout(): Promise<void> {
       >
         <AppIcon name="camera" class="size-4" />
         Recupera giorni mancanti
+      </RouterLink>
+
+      <RouterLink
+        :to="{ name: 'profile' }"
+        class="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border-2 border-line py-2 font-bold"
+        @click="menuOpen = false"
+      >
+        <AppIcon name="settings" class="size-4" />
+        Impostazioni personali
       </RouterLink>
 
       <RouterLink
