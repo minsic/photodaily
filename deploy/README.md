@@ -39,7 +39,9 @@ Internet ─▶ Caddy :443 ─┬─ /api/*  ─▶ PHP-FPM 8.4 (Laravel) ─▶
    ```
    Lo script crea l'utente `photodaily` con le stesse chiavi SSH di `ubuntu`. Se trova una chiave, disattiva l'accesso con password e quello di root.
 
-3. **Completa `.env`**: `sudo -u photodaily nano /var/www/photodaily/shared/.env` → `R2_*` (bucket di produzione) e `MAIL_*`.
+3. **Completa `.env`**: `sudo -u photodaily nano /var/www/photodaily/shared/.env` →
+   - `R2_*`: bucket `photodaily-prod` in giurisdizione UE (endpoint `https://<account>.eu.r2.cloudflarestorage.com`), con una chiave API limitata a quel bucket, mai quella di sviluppo;
+   - `MAIL_*`: login e chiave SMTP di Brevo, poi `MAIL_MAILER=smtp`.
 
 4. **Primo deploy** e avvio del worker:
    ```sh
