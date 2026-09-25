@@ -4,6 +4,7 @@ import { ref } from 'vue'
 import { publicDiary as publicApi } from '@/api'
 import { ApiError } from '@/api/client'
 import type { Photo, YearSummary } from '@/api/types'
+import { signedUrlsAreStale } from '@/utils/signedUrls'
 
 /**
  * Diario di una famiglia in sola lettura.
@@ -30,6 +31,8 @@ export const usePublicDiaryStore = defineStore('public-diary', () => {
 
   const loading = ref(false)
   const error = ref<string | null>(null)
+  /** Quando è stato riempito `items`: gli URL delle immagini scadono dopo un'ora. */
+  const loadedAt = ref<number | null>(null)
   const unlocking = ref(false)
   const unlockError = ref<string | null>(null)
 
@@ -76,9 +79,12 @@ export const usePublicDiaryStore = defineStore('public-diary', () => {
     }
   }
 
-  async function load(): Promise<void> {
-    loading.value = true
-    error.value = null
+  /** Con `silent` non mostra il caricamento e, se fallisce, lascia le foto che ci sono. */
+  async function load({ silent = false } = {}): Promise<void> {
+    if (!silent) {
+      loading.value = true
+      error.value = null
+    }
 
     try {
       const response = await publicApi.list(slug.value, token.value, {
@@ -88,6 +94,7 @@ export const usePublicDiaryStore = defineStore('public-diary', () => {
       })
 
       items.value = response.data
+      loadedAt.value = Date.now()
     } catch (cause) {
       if (cause instanceof ApiError && (cause.status === 401 || cause.status === 404)) {
         handleAccessError(cause)
@@ -95,10 +102,39 @@ export const usePublicDiaryStore = defineStore('public-diary', () => {
         return
       }
 
+      if (silent) {
+        return
+      }
+
       error.value = cause instanceof ApiError ? cause.message : 'Non riesco a caricare le foto.'
       items.value = []
+      loadedAt.value = null
     } finally {
-      loading.value = false
+      if (!silent) {
+        loading.value = false
+      }
+    }
+  }
+
+  /** Se gli URL delle immagini stanno per scadere, ricarica la lista in silenzio. */
+  async function refreshIfStale(): Promise<void> {
+    if (state.value === 'ready' && !loading.value && signedUrlsAreStale(loadedAt.value)) {
+      await load({ silent: true })
+    }
+  }
+
+  /** Come nella timeline privata: URL nuovi per una foto la cui immagine non si carica più. */
+  async function refreshImage(id: number): Promise<void> {
+    const fresh = await publicApi.get(slug.value, token.value, id).catch(() => null)
+    const index = items.value.findIndex((item) => item.id === id)
+
+    if (fresh && index >= 0) {
+      items.value[index] = {
+        ...items.value[index],
+        thumbnail_url: fresh.thumbnail_url,
+        medium_url: fresh.medium_url,
+        image_url: fresh.image_url,
+      }
     }
   }
 
@@ -146,6 +182,7 @@ export const usePublicDiaryStore = defineStore('public-diary', () => {
     anno.value = null
     soloSpeciali.value = false
     error.value = null
+    loadedAt.value = null
     unlockError.value = null
   }
 
@@ -167,6 +204,8 @@ export const usePublicDiaryStore = defineStore('public-diary', () => {
     setSoloSpeciali,
     find,
     photo,
+    refreshIfStale,
+    refreshImage,
   }
 })
 

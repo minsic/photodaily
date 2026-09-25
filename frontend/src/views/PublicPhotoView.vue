@@ -11,6 +11,7 @@ import { useNoIndex } from '@/composables/useNoIndex'
 import { usePublicDiaryStore } from '@/stores/publicDiary'
 import { captionToPlainText } from '@/utils/caption'
 import { formatLongDate, formatShortDate } from '@/utils/date'
+import { canRetrySignedUrl } from '@/utils/signedUrls'
 
 /** Dettaglio in sola lettura: nessuna azione di modifica o cancellazione. */
 const props = defineProps<{ slug: string; id: number }>()
@@ -24,7 +25,8 @@ const photo = ref<Photo | null>(null)
 const loading = ref(true)
 const unavailable = ref(false)
 const imageLoaded = ref(false)
-const retried = ref(false)
+/** Ultimo rinnovo degli URL chiesto per questa foto. */
+const lastRetryAt = ref<number | null>(null)
 
 const ratio = computed(() =>
   photo.value?.width && photo.value.height
@@ -49,7 +51,7 @@ async function load(id: number): Promise<void> {
   loading.value = !cached
   unavailable.value = false
   imageLoaded.value = false
-  retried.value = false
+  lastRetryAt.value = null
 
   try {
     photo.value = await diary.photo(id)
@@ -63,11 +65,11 @@ async function load(id: number): Promise<void> {
 }
 
 async function onImageError(): Promise<void> {
-  if (retried.value || !photo.value) {
+  if (!photo.value || !canRetrySignedUrl(lastRetryAt.value)) {
     return
   }
 
-  retried.value = true
+  lastRetryAt.value = Date.now()
 
   const fresh = await diary.photo(photo.value.id).catch(() => null)
 

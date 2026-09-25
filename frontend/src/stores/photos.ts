@@ -5,6 +5,7 @@ import { photos as photosApi } from '@/api'
 import { ApiError } from '@/api/client'
 import type { Photo, YearSummary } from '@/api/types'
 import { yearOf } from '@/utils/date'
+import { signedUrlsAreStale } from '@/utils/signedUrls'
 
 type Stato = 'pubblicate' | 'bozze'
 
@@ -19,6 +20,8 @@ export const usePhotosStore = defineStore('photos', () => {
   const error = ref<string | null>(null)
   /** Filtri con cui è stato riempito `items`: evita richieste inutili. */
   const loadedKey = ref<string | null>(null)
+  /** Quando è stato riempito `items`: gli URL delle immagini scadono dopo un'ora. */
+  const loadedAt = ref<number | null>(null)
 
   const filterKey = computed(() => `${anno.value}|${soloSpeciali.value}|${stato.value}`)
   const hasFilters = computed(() => soloSpeciali.value || stato.value === 'bozze')
@@ -31,16 +34,22 @@ export const usePhotosStore = defineStore('photos', () => {
     }
   }
 
-  /** Carica le foto solo se i filtri sono cambiati (o se si forza). */
-  async function load(force = false): Promise<void> {
+  /**
+   * Carica le foto solo se i filtri sono cambiati (o se si forza).
+   * Con `silent` non mostra il caricamento e, se fallisce, lascia le foto
+   * che ci sono: serve a rinnovare gli URL senza disturbare.
+   */
+  async function load(force = false, { silent = false } = {}): Promise<void> {
     if (!force && loadedKey.value === filterKey.value) {
       return
     }
 
     const key = filterKey.value
 
-    loading.value = true
-    error.value = null
+    if (!silent) {
+      loading.value = true
+      error.value = null
+    }
 
     try {
       const response = await photosApi.list({
@@ -53,12 +62,27 @@ export const usePhotosStore = defineStore('photos', () => {
 
       items.value = response.data
       loadedKey.value = key
+      loadedAt.value = Date.now()
     } catch (cause) {
+      if (silent) {
+        return
+      }
+
       error.value = cause instanceof ApiError ? cause.message : 'Non riesco a caricare le foto.'
       items.value = []
       loadedKey.value = null
+      loadedAt.value = null
     } finally {
-      loading.value = false
+      if (!silent) {
+        loading.value = false
+      }
+    }
+  }
+
+  /** Se gli URL delle immagini stanno per scadere, ricarica la lista in silenzio. */
+  async function refreshIfStale(): Promise<void> {
+    if (loadedKey.value !== null && !loading.value && signedUrlsAreStale(loadedAt.value)) {
+      await load(true, { silent: true })
     }
   }
 
@@ -146,6 +170,7 @@ export const usePhotosStore = defineStore('photos', () => {
     soloSpeciali.value = false
     stato.value = 'pubblicate'
     loadedKey.value = null
+    loadedAt.value = null
     error.value = null
   }
 
@@ -167,6 +192,7 @@ export const usePhotosStore = defineStore('photos', () => {
     upsert,
     drop,
     refreshImage,
+    refreshIfStale,
     reset,
   }
 })

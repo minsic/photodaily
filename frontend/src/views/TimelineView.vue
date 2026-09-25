@@ -7,6 +7,7 @@ import AppIcon from '@/components/AppIcon.vue'
 import AppSpinner from '@/components/AppSpinner.vue'
 import FilterBar from '@/components/FilterBar.vue'
 import TimelineItem from '@/components/TimelineItem.vue'
+import { useRefreshWhenVisible } from '@/composables/useRefreshWhenVisible'
 import { useAuthStore } from '@/stores/auth'
 import { usePhotosStore } from '@/stores/photos'
 
@@ -15,6 +16,9 @@ const photos = usePhotosStore()
 const router = useRouter()
 
 const menuOpen = ref(false)
+
+// Tornando alla PWA dopo un po' gli URL delle immagini sarebbero scaduti.
+useRefreshWhenVisible(() => photos.refreshIfStale())
 
 function onAnno(anno: number): void {
   photos.setAnno(anno)

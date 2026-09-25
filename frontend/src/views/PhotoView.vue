@@ -13,6 +13,7 @@ import { usePhotosStore } from '@/stores/photos'
 import { useToastsStore } from '@/stores/toasts'
 import { captionToPlainText } from '@/utils/caption'
 import { formatLongDate, formatShortDate } from '@/utils/date'
+import { canRetrySignedUrl } from '@/utils/signedUrls'
 
 const props = defineProps<{ id: number }>()
 
@@ -24,7 +25,8 @@ const photo = ref<Photo | null>(null)
 const loading = ref(true)
 const error = ref<string | null>(null)
 const imageLoaded = ref(false)
-const retried = ref(false)
+/** Ultimo rinnovo degli URL chiesto per questa foto. */
+const lastRetryAt = ref<number | null>(null)
 const confirmingDelete = ref(false)
 const deleting = ref(false)
 
@@ -49,7 +51,7 @@ async function load(id: number): Promise<void> {
   loading.value = !cached
   error.value = null
   imageLoaded.value = false
-  retried.value = false
+  lastRetryAt.value = null
 
   try {
     const fresh = await photosApi.get(id)
@@ -66,11 +68,11 @@ async function load(id: number): Promise<void> {
 }
 
 async function onImageError(): Promise<void> {
-  if (retried.value || !photo.value) {
+  if (!photo.value || !canRetrySignedUrl(lastRetryAt.value)) {
     return
   }
 
-  retried.value = true
+  lastRetryAt.value = Date.now()
 
   const fresh = await photosApi.get(photo.value.id).catch(() => null)
 

@@ -6,6 +6,7 @@ import AppIcon from '@/components/AppIcon.vue'
 import AppSpinner from '@/components/AppSpinner.vue'
 import FilterBar from '@/components/FilterBar.vue'
 import TimelineItem from '@/components/TimelineItem.vue'
+import { useRefreshWhenVisible } from '@/composables/useRefreshWhenVisible'
 import { useNoIndex } from '@/composables/useNoIndex'
 import { usePublicDiaryStore } from '@/stores/publicDiary'
 
@@ -19,6 +20,9 @@ const diary = usePublicDiaryStore()
 const password = ref('')
 
 useNoIndex()
+
+// Tornando alla pagina dopo un po' gli URL delle immagini sarebbero scaduti.
+useRefreshWhenVisible(() => diary.refreshIfStale())
 
 onMounted(() => diary.open(props.slug))
 watch(() => props.slug, (slug) => diary.open(slug))
@@ -110,6 +114,7 @@ watch(() => props.slug, (slug) => diary.open(slug))
           :key="photo.id"
           :photo="photo"
           :to="{ name: 'public-photo', params: { slug, id: photo.id } }"
+          :refresh="diary.refreshImage"
         />
       </ul>
     </template>

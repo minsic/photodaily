@@ -7,11 +7,14 @@ import AppIcon from '@/components/AppIcon.vue'
 import { usePhotosStore } from '@/stores/photos'
 import { captionToPlainText, captionWithoutLinks } from '@/utils/caption'
 import { formatDayAndMonth } from '@/utils/date'
+import { canRetrySignedUrl } from '@/utils/signedUrls'
 
 const props = defineProps<{
   photo: Photo
   /** Dove porta la foto: la timeline pubblica usa le proprie rotte. */
   to?: RouteLocationRaw
+  /** Chiede URL nuovi per questa foto: la timeline pubblica usa la propria API. */
+  refresh?: (id: number) => Promise<void>
 }>()
 
 const target = computed<RouteLocationRaw>(
@@ -20,7 +23,8 @@ const target = computed<RouteLocationRaw>(
 
 const photos = usePhotosStore()
 const loaded = ref(false)
-const retried = ref(false)
+/** Ultimo rinnovo degli URL chiesto per questa foto. */
+const lastRetryAt = ref<number | null>(null)
 
 /** Lato lungo della miniatura generata dal server (ThumbnailMaker::MAX_SIDE). */
 const THUMBNAIL_SIDE = 400
@@ -72,14 +76,17 @@ const altText = computed(
   () => captionToPlainText(props.photo.didascalia) || `Foto del ${props.photo.data}`,
 )
 
-/** Se l'URL firmato è scaduto mentre la pagina era aperta, se ne chiede uno nuovo. */
+/**
+ * Se l'URL firmato è scaduto mentre la pagina era aperta, se ne chiede uno
+ * nuovo: una volta sola finché anche quello non può essere scaduto.
+ */
 async function onError(): Promise<void> {
-  if (retried.value) {
+  if (!canRetrySignedUrl(lastRetryAt.value)) {
     return
   }
 
-  retried.value = true
-  await photos.refreshImage(props.photo.id)
+  lastRetryAt.value = Date.now()
+  await (props.refresh ?? photos.refreshImage)(props.photo.id)
 }
 </script>
 
