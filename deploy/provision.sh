@@ -109,8 +109,11 @@ fi
 
 install -d -m 750 -o "$APP_USER" -g "$APP_USER" "$APP_DIR" "$APP_DIR/releases" "$APP_DIR/shared"
 for dir in app/private framework/cache/data framework/sessions framework/views logs; do
-    install -d -m 750 -o "$APP_USER" -g "$APP_USER" "$APP_DIR/shared/storage/$dir"
+    install -d -m 750 "$APP_DIR/shared/storage/$dir"
 done
+# install -d assegna il proprietario solo all'ultima cartella del percorso.
+chown -R "$APP_USER:$APP_USER" "$APP_DIR/shared/storage"
+chmod -R u=rwX,g=rX,o= "$APP_DIR/shared/storage"
 
 # Il deploy può solo ricaricare PHP-FPM, niente altro come root.
 cat > /etc/sudoers.d/photodaily <<SUDO
@@ -180,7 +183,10 @@ CRON
 step "Caddy"
 install -d -o caddy -g caddy /var/log/caddy
 sed "s|__ACME_EMAIL__|$ACME_EMAIL|" "$DEPLOY_DIR/Caddyfile" > /etc/caddy/Caddyfile
-caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+# Come utente caddy: da root validate creerebbe il file di log intestato a root,
+# e poi Caddy non riuscirebbe ad aprirlo.
+sudo -u caddy caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+chown -R caddy:caddy /var/log/caddy
 systemctl enable caddy
 # Restart, non reload: Caddy deve ripartire col gruppo photodaily appena aggiunto.
 systemctl restart caddy

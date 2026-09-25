@@ -3,7 +3,6 @@
 # Un solo sito per tutti gli host: photodaily.app, <slug>.photodaily.app e
 # i domini propri delle famiglie. I certificati si chiedono al primo accesso
 # (on-demand TLS), ma solo per gli host che il backend riconosce.
-
 {
 	# Sostituito da provision.sh con ACME_EMAIL.
 	email __ACME_EMAIL__
