@@ -3,7 +3,7 @@ import { ref } from 'vue'
 
 import { publicDiary as publicApi } from '@/api'
 import { ApiError } from '@/api/client'
-import type { Photo, YearSummary } from '@/api/types'
+import type { Photo, Protagonist, YearSummary } from '@/api/types'
 import { usePagedPhotos } from '@/composables/usePagedPhotos'
 import { signedUrlsAreStale } from '@/utils/signedUrls'
 
@@ -26,6 +26,8 @@ export const usePublicDiaryStore = defineStore('public-diary', () => {
   const state = ref<State>('loading')
 
   const years = ref<YearSummary[]>([])
+  /** Per l'età sotto le foto: arriva solo quando si ha accesso al diario. */
+  const protagonist = ref<Protagonist | null>(null)
   const anno = ref<number | null>(null)
   const soloSpeciali = ref(false)
 
@@ -57,6 +59,11 @@ export const usePublicDiaryStore = defineStore('public-diary', () => {
       years.value = await publicApi.years(slug.value, token.value)
       anno.value = years.value[0]?.anno ?? null
       state.value = 'ready'
+
+      protagonist.value = await publicApi
+        .profile(slug.value, token.value)
+        .then((profile) => profile.protagonist)
+        .catch(() => null)
 
       await load()
     } catch (cause) {
@@ -183,6 +190,7 @@ export const usePublicDiaryStore = defineStore('public-diary', () => {
   function reset(): void {
     paged.clear()
     years.value = []
+    protagonist.value = null
     anno.value = null
     soloSpeciali.value = false
     error.value = null
@@ -194,6 +202,7 @@ export const usePublicDiaryStore = defineStore('public-diary', () => {
     state,
     items,
     years,
+    protagonist,
     anno,
     soloSpeciali,
     loading,

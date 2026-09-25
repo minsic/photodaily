@@ -79,6 +79,7 @@ class HostFamilyTest extends TestCase
                 'name' => $this->giopellino->name,
                 'slug' => 'giopellino',
                 'access_mode' => 'public',
+                'protagonist' => null,
             ]]]);
 
         $this->getJson('https://www.giopellino.it/api/site')

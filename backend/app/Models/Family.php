@@ -14,7 +14,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Hash;
 use InvalidArgumentException;
 
-#[Fillable(['name', 'slug', 'custom_domain', 'plan_id'])]
+#[Fillable(['name', 'slug', 'custom_domain', 'plan_id', 'protagonist_name', 'protagonist_birthdate'])]
 #[Hidden(['access_password_hash'])]
 class Family extends Model
 {
@@ -181,6 +181,33 @@ class Family extends Model
         $port = isset($frontend['port']) ? ':'.$frontend['port'] : '';
 
         return ($frontend['scheme'] ?? 'https').'://'.$host.$port;
+    }
+
+    /**
+     * Di chi è il diario: nome e data di nascita (Y-m-d), per scrivere l'età
+     * sotto le foto. Null se non è impostato nessuno dei due.
+     *
+     * @return array{name: string|null, birthdate: string|null}|null
+     */
+    public function protagonist(): ?array
+    {
+        if ($this->protagonist_name === null && $this->protagonist_birthdate === null) {
+            return null;
+        }
+
+        return [
+            'name' => $this->protagonist_name,
+            // La colonna è una date: su SQLite può tornare con l'ora, su MySQL no.
+            'birthdate' => $this->protagonist_birthdate === null ? null : substr((string) $this->protagonist_birthdate, 0, 10),
+        ];
+    }
+
+    /**
+     * Data di oggi (Y-m-d) per la famiglia.
+     */
+    public function today(): string
+    {
+        return now(config('photodaily.default_timezone'))->toDateString();
     }
 
     public function inviteUrl(string $token): string

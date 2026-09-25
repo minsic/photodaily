@@ -122,6 +122,7 @@ watch(() => props.slug, (slug) => diary.open(slug))
             :photo="photo"
             :to="{ name: 'public-photo', params: { slug, id: photo.id } }"
             :refresh="diary.refreshImage"
+            :protagonist="diary.protagonist"
           />
         </ul>
 

@@ -10,11 +10,20 @@ export interface Plan {
   price_monthly_cents: number
 }
 
+/** Di chi è il diario: serve a scrivere l'età sotto le foto. */
+export interface Protagonist {
+  name: string | null
+  /** YYYY-MM-DD */
+  birthdate: string | null
+}
+
 /** Quanto dice GET /site della famiglia servita dall'host corrente. */
 export interface SiteFamily {
   name: string
   slug: string
   access_mode: AccessMode
+  /** Solo per i diari pubblici: per gli altri lo si chiede dopo l'accesso. */
+  protagonist: Protagonist | null
 }
 
 export interface Family {
@@ -25,6 +34,7 @@ export interface Family {
   /** Indirizzo del diario: dominio proprio o <slug>.photodaily.app. */
   url: string
   access_mode: AccessMode
+  protagonist: Protagonist | null
   storage_used_mb: number
   photos_count?: number
   plan?: Plan

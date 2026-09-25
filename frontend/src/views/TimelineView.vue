@@ -158,7 +158,12 @@ async function logout(): Promise<void> {
 
     <template v-else>
       <ul class="mt-2">
-        <TimelineItem v-for="photo in photos.items" :key="photo.id" :photo="photo" />
+        <TimelineItem
+          v-for="photo in photos.items"
+          :key="photo.id"
+          :photo="photo"
+          :protagonist="auth.family?.protagonist"
+        />
       </ul>
 
       <div ref="sentinel" aria-hidden="true" />

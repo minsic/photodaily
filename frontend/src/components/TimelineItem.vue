@@ -2,8 +2,9 @@
 import { computed, ref } from 'vue'
 import { RouterLink, type RouteLocationRaw } from 'vue-router'
 
-import type { Photo } from '@/api/types'
+import type { Photo, Protagonist } from '@/api/types'
 import AppIcon from '@/components/AppIcon.vue'
+import PhotoAge from '@/components/PhotoAge.vue'
 import { usePhotosStore } from '@/stores/photos'
 import { captionToPlainText, captionWithoutLinks } from '@/utils/caption'
 import { formatDayAndMonth } from '@/utils/date'
@@ -15,6 +16,8 @@ const props = defineProps<{
   to?: RouteLocationRaw
   /** Chiede URL nuovi per questa foto: la timeline pubblica usa la propria API. */
   refresh?: (id: number) => Promise<void>
+  /** Per scrivere l'età sotto la data. */
+  protagonist?: Protagonist | null
 }>()
 
 const target = computed<RouteLocationRaw>(
@@ -112,6 +115,7 @@ async function onError(): Promise<void> {
           bozza
         </span>
       </div>
+      <PhotoAge :date="photo.data" :protagonist="protagonist" />
 
       <figure class="mt-2 overflow-hidden rounded-2xl bg-card card-shadow">
         <img

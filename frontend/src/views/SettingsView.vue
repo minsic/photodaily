@@ -10,6 +10,7 @@ import AppIcon from '@/components/AppIcon.vue'
 import AppSpinner from '@/components/AppSpinner.vue'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import CopyButton from '@/components/CopyButton.vue'
+import FamilyProfileForm from '@/components/FamilyProfileForm.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useToastsStore } from '@/stores/toasts'
 import { formatShortDate } from '@/utils/date'
@@ -202,6 +203,8 @@ function inviteError(field: string): string | undefined {
         {{ auth.family?.storage_used_mb ?? 0 }} MB
       </p>
     </header>
+
+    <FamilyProfileForm />
 
     <section>
       <h2 class="text-lg font-bold">Membri e inviti</h2>

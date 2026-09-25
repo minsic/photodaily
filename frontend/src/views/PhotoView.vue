@@ -7,8 +7,10 @@ import { ApiError } from '@/api/client'
 import type { Photo } from '@/api/types'
 import AppHeader from '@/components/AppHeader.vue'
 import AppIcon from '@/components/AppIcon.vue'
+import PhotoAge from '@/components/PhotoAge.vue'
 import AppSpinner from '@/components/AppSpinner.vue'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
+import { useAuthStore } from '@/stores/auth'
 import { usePhotosStore } from '@/stores/photos'
 import { useToastsStore } from '@/stores/toasts'
 import { captionToPlainText } from '@/utils/caption'
@@ -21,6 +23,7 @@ const store = usePhotosStore()
 const toasts = useToastsStore()
 const router = useRouter()
 
+const auth = useAuthStore()
 const photo = ref<Photo | null>(null)
 const loading = ref(true)
 const error = ref<string | null>(null)
@@ -214,6 +217,7 @@ watch(() => props.id, load, { immediate: true })
           bozza
         </span>
       </div>
+      <PhotoAge :date="photo.data" :protagonist="auth.family?.protagonist" />
 
       <div
         v-if="photo.didascalia"

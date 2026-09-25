@@ -6,6 +6,7 @@ import { ApiError } from '@/api/client'
 import type { Photo } from '@/api/types'
 import AppHeader from '@/components/AppHeader.vue'
 import AppIcon from '@/components/AppIcon.vue'
+import PhotoAge from '@/components/PhotoAge.vue'
 import AppSpinner from '@/components/AppSpinner.vue'
 import { useNoIndex } from '@/composables/useNoIndex'
 import { usePublicDiaryStore } from '@/stores/publicDiary'
@@ -172,6 +173,7 @@ watch(() => props.id, load, { immediate: true })
         <time :datetime="photo.data" class="text-lg font-bold">{{ formatLongDate(photo.data) }}</time>
         <AppIcon v-if="photo.data_speciale" name="star" filled class="size-5 text-brick" />
       </div>
+      <PhotoAge :date="photo.data" :protagonist="diary.protagonist" />
 
       <div
         v-if="photo.didascalia"

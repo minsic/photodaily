@@ -14,4 +14,11 @@ class FamilyPolicy
             ? Response::allow()
             : Response::deny('Solo un amministratore della famiglia può cambiare la modalità di accesso.');
     }
+
+    public function update(User $user, Family $family): Response
+    {
+        return $user->isAdmin() && (int) $user->family_id === (int) $family->id
+            ? Response::allow()
+            : Response::deny('Solo un amministratore della famiglia può cambiare le sue impostazioni.');
+    }
 }

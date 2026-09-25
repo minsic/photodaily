@@ -10,6 +10,7 @@ import type {
   Photo,
   PhotoFilters,
   PhotoPayload,
+  Protagonist,
   ReadAccess,
   SiteFamily,
   User,
@@ -113,6 +114,12 @@ export const invites = {
 }
 
 export const family = {
+  update(payload: { protagonist_name?: string | null; protagonist_birthdate?: string | null }) {
+    return api<{ data: Family }>('/family', { method: 'PATCH', body: payload }).then(
+      (response) => response.data,
+    )
+  },
+
   setAccessMode(accessMode: AccessMode, password?: string) {
     return api<{ data: Family }>('/family/access-mode', {
       method: 'PATCH',
@@ -138,6 +145,13 @@ export const publicDiary = {
     return api<{ data: YearSummary[] }>(`/public/${encodeURIComponent(slug)}/photos/anni`, {
       token,
     }).then((response) => response.data)
+  },
+
+  profile(slug: string, token: string | null) {
+    return api<{ data: { name: string; protagonist: Protagonist | null } }>(
+      `/public/${encodeURIComponent(slug)}/profilo`,
+      { token },
+    ).then((response) => response.data)
   },
 
   list(slug: string, token: string | null, filters: PhotoFilters = {}) {

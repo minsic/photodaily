@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\FamilyAccessController;
+use App\Http\Controllers\Api\FamilyController;
 use App\Http\Controllers\Api\InviteController;
 use App\Http\Controllers\Api\PhotoController;
 use App\Http\Controllers\Api\PublicAccessController;
@@ -31,6 +32,7 @@ Route::prefix('public/{family_slug}')->group(function () {
         ->middleware('throttle:public-password');
 
     Route::middleware(['throttle:public', EnsurePublicFamilyAccess::class])->group(function () {
+        Route::get('/profilo', [FamilyController::class, 'showPublic']);
         Route::get('/photos', [PublicPhotoController::class, 'index']);
         Route::get('/photos/anni', [PublicPhotoController::class, 'years']);
         Route::get('/photos/{photo}', [PublicPhotoController::class, 'show'])->whereNumber('photo');
@@ -46,6 +48,7 @@ Route::middleware(['auth:sanctum', EnsureHostFamilyMember::class])->group(functi
     Route::post('/invites', [InviteController::class, 'store']);
     Route::delete('/invites/{invite}', [InviteController::class, 'destroy'])->whereNumber('invite');
 
+    Route::patch('/family', [FamilyController::class, 'update']);
     Route::patch('/family/access-mode', [FamilyAccessController::class, 'update']);
 
     Route::get('/photos/anni', [PhotoController::class, 'years']);
