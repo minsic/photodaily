@@ -53,6 +53,15 @@ Internet ─▶ Caddy :443 ─┬─ /api/*  ─▶ PHP-FPM 8.4 (Laravel) ─▶
    sudo -u photodaily php artisan family:create giopellino "Giopellino" --admin-email=... --domain=giopellino.it
    ```
 
+## Dopo aver modificato `.env`
+
+La configurazione è in cache e OPcache non ricontrolla i file: senza questi due comandi PHP-FPM continua a usare i valori vecchi (la riga di comando invece vede subito quelli nuovi, quindi un test con `tinker` può passare mentre il sito sbaglia).
+```sh
+cd /var/www/photodaily/current/backend
+php artisan config:cache && sudo systemctl reload php8.4-fpm && php artisan queue:restart
+```
+Anche un deploy completo li esegue.
+
 ## Deploy successivi
 
 ```sh
