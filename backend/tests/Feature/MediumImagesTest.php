@@ -5,8 +5,10 @@ namespace Tests\Feature;
 use App\Models\Family;
 use App\Models\Photo;
 use App\Models\User;
+use App\Services\ThumbnailMaker;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Image;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
@@ -48,6 +50,45 @@ class MediumImagesTest extends TestCase
         // La miniatura resta a 400px anche se ora si ricava dalla versione media.
         [$thumbWidth] = getimagesizefromstring(Storage::disk('r2')->get($photo->thumbnail_path));
         $this->assertSame(400, $thumbWidth);
+    }
+
+    public function test_detailed_photos_drop_quality_to_stay_under_the_weight_limit(): void
+    {
+        // Rumore casuale: il caso peggiore per la compressione.
+        $image = imagecreatetruecolor(3000, 2000);
+        for ($y = 0; $y < 2000; $y += 2) {
+            for ($x = 0; $x < 3000; $x += 2) {
+                imagefilledrectangle($image, $x, $y, $x + 1, $y + 1, random_int(0, 0xFFFFFF));
+            }
+        }
+        $path = tempnam(sys_get_temp_dir(), 'rumore').'.png';
+        imagepng($image, $path, 1);
+        unset($image);
+
+        // Come fa ThumbnailMaker: GD decodifica in una bitmap non compressa.
+        ini_set('memory_limit', config('photodaily.thumbnail_memory_limit'));
+
+        $atDefaultQuality = strlen(Image::fromPath($path)->scale(1400, 1400)->optimize('webp', ThumbnailMaker::QUALITY)->toBytes());
+        $medium = app(ThumbnailMaker::class)->fromPath($path, ThumbnailMaker::MEDIUM_SIDE);
+        @unlink($path);
+
+        // Il rumore puro non entra nel limite nemmeno alla qualità più bassa:
+        // qui si verifica che la qualità venga abbassata, non il peso assoluto.
+        $this->assertGreaterThan(ThumbnailMaker::MEDIUM_MAX_BYTES, $atDefaultQuality);
+        $this->assertSame(1400, $medium['width']);
+        $this->assertLessThan($atDefaultQuality * 0.8, strlen($medium['bytes']));
+    }
+
+    public function test_thumbnails_keep_the_default_quality_whatever_their_weight(): void
+    {
+        $path = tempnam(sys_get_temp_dir(), 'foto').'.jpg';
+        file_put_contents($path, UploadedFile::fake()->image('foto.jpg', 1600, 1200)->get());
+
+        $thumbnail = app(ThumbnailMaker::class)->fromPath($path);
+        $expected = Image::fromPath($path)->orient()->scale(400, 400)->optimize('webp', ThumbnailMaker::QUALITY)->toBytes();
+        @unlink($path);
+
+        $this->assertSame(strlen($expected), strlen($thumbnail['bytes']));
     }
 
     public function test_small_photos_are_never_enlarged(): void
