@@ -4,6 +4,7 @@ import { ref } from 'vue'
 import { publicDiary as publicApi } from '@/api'
 import { ApiError } from '@/api/client'
 import type { Photo, YearSummary } from '@/api/types'
+import { usePagedPhotos } from '@/composables/usePagedPhotos'
 import { signedUrlsAreStale } from '@/utils/signedUrls'
 
 /**
@@ -24,17 +25,24 @@ export const usePublicDiaryStore = defineStore('public-diary', () => {
   const token = ref<string | null>(null)
   const state = ref<State>('loading')
 
-  const items = ref<Photo[]>([])
   const years = ref<YearSummary[]>([])
   const anno = ref<number | null>(null)
   const soloSpeciali = ref(false)
 
   const loading = ref(false)
   const error = ref<string | null>(null)
-  /** Quando è stato riempito `items`: gli URL delle immagini scadono dopo un'ora. */
-  const loadedAt = ref<number | null>(null)
   const unlocking = ref(false)
   const unlockError = ref<string | null>(null)
+
+  const paged = usePagedPhotos((page, perPage) =>
+    publicApi.list(slug.value, token.value, {
+      anno: anno.value,
+      speciali: soloSpeciali.value,
+      page,
+      per_page: perPage,
+    }),
+  )
+  const items = paged.items
 
   async function open(nextSlug: string): Promise<void> {
     if (slug.value !== nextSlug) {
@@ -79,47 +87,43 @@ export const usePublicDiaryStore = defineStore('public-diary', () => {
     }
   }
 
-  /** Con `silent` non mostra il caricamento e, se fallisce, lascia le foto che ci sono. */
-  async function load({ silent = false } = {}): Promise<void> {
-    if (!silent) {
-      loading.value = true
-      error.value = null
-    }
+  /** Prima pagina con i filtri correnti; le successive arrivano con loadMore mentre si scorre. */
+  async function load(): Promise<void> {
+    loading.value = true
+    error.value = null
 
     try {
-      const response = await publicApi.list(slug.value, token.value, {
-        anno: anno.value,
-        speciali: soloSpeciali.value,
-        per_page: 500,
-      })
-
-      items.value = response.data
-      loadedAt.value = Date.now()
+      await paged.loadFirst()
     } catch (cause) {
+      paged.clear()
+
       if (cause instanceof ApiError && (cause.status === 401 || cause.status === 404)) {
         handleAccessError(cause)
 
         return
       }
 
-      if (silent) {
-        return
-      }
-
       error.value = cause instanceof ApiError ? cause.message : 'Non riesco a caricare le foto.'
-      items.value = []
-      loadedAt.value = null
     } finally {
-      if (!silent) {
-        loading.value = false
-      }
+      loading.value = false
     }
   }
 
-  /** Se gli URL delle immagini stanno per scadere, ricarica la lista in silenzio. */
+  function loadMore(): Promise<void> {
+    return loading.value ? Promise.resolve() : paged.loadMore()
+  }
+
+  /**
+   * Se gli URL delle immagini stanno per scadere, ricarica in silenzio le
+   * foto già mostrate: niente spinner e, se fallisce, restano quelle che ci sono.
+   */
   async function refreshIfStale(): Promise<void> {
-    if (state.value === 'ready' && !loading.value && signedUrlsAreStale(loadedAt.value)) {
-      await load({ silent: true })
+    if (state.value === 'ready' && !loading.value && signedUrlsAreStale(paged.loadedAt.value)) {
+      await paged.reloadLoaded().catch((cause) => {
+        if (cause instanceof ApiError && (cause.status === 401 || cause.status === 404)) {
+          handleAccessError(cause)
+        }
+      })
     }
   }
 
@@ -177,12 +181,11 @@ export const usePublicDiaryStore = defineStore('public-diary', () => {
   }
 
   function reset(): void {
-    items.value = []
+    paged.clear()
     years.value = []
     anno.value = null
     soloSpeciali.value = false
     error.value = null
-    loadedAt.value = null
     unlockError.value = null
   }
 
@@ -194,12 +197,16 @@ export const usePublicDiaryStore = defineStore('public-diary', () => {
     anno,
     soloSpeciali,
     loading,
+    loadingMore: paged.loadingMore,
+    moreError: paged.moreError,
+    hasMore: paged.hasMore,
     error,
     unlocking,
     unlockError,
     open,
     unlock,
     load,
+    loadMore,
     setAnno,
     setSoloSpeciali,
     find,

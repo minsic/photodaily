@@ -4,13 +4,13 @@ import { computed, ref } from 'vue'
 import { photos as photosApi } from '@/api'
 import { ApiError } from '@/api/client'
 import type { Photo, YearSummary } from '@/api/types'
+import { byDateDesc, usePagedPhotos } from '@/composables/usePagedPhotos'
 import { yearOf } from '@/utils/date'
 import { signedUrlsAreStale } from '@/utils/signedUrls'
 
 type Stato = 'pubblicate' | 'bozze'
 
 export const usePhotosStore = defineStore('photos', () => {
-  const items = ref<Photo[]>([])
   const years = ref<YearSummary[]>([])
   const anno = ref<number | null>(null)
   const soloSpeciali = ref(false)
@@ -18,14 +18,27 @@ export const usePhotosStore = defineStore('photos', () => {
 
   const loading = ref(false)
   const error = ref<string | null>(null)
-  /** Filtri con cui è stato riempito `items`: evita richieste inutili. */
+  /** Filtri con cui è stato riempito l'elenco: evita richieste inutili. */
   const loadedKey = ref<string | null>(null)
-  /** Quando è stato riempito `items`: gli URL delle immagini scadono dopo un'ora. */
-  const loadedAt = ref<number | null>(null)
 
   const filterKey = computed(() => `${anno.value}|${soloSpeciali.value}|${stato.value}`)
   const hasFilters = computed(() => soloSpeciali.value || stato.value === 'bozze')
 
+  const paged = usePagedPhotos((page, perPage) =>
+    photosApi.list({
+      anno: stato.value === 'bozze' ? null : anno.value,
+      speciali: soloSpeciali.value,
+      stato: stato.value,
+      page,
+      per_page: perPage,
+    }),
+  )
+  const items = paged.items
+
+  /**
+   * Anni con foto pubblicate. Si parte sempre dal più recente: l'anno scelto
+   * resta solo finché l'app è aperta (tornando da una foto si ritrova).
+   */
   async function loadYears(): Promise<void> {
     years.value = await photosApi.years()
 
@@ -35,54 +48,42 @@ export const usePhotosStore = defineStore('photos', () => {
   }
 
   /**
-   * Carica le foto solo se i filtri sono cambiati (o se si forza).
-   * Con `silent` non mostra il caricamento e, se fallisce, lascia le foto
-   * che ci sono: serve a rinnovare gli URL senza disturbare.
+   * Carica la prima pagina solo se i filtri sono cambiati (o se si forza).
+   * Le pagine successive arrivano con loadMore mentre si scorre.
    */
-  async function load(force = false, { silent = false } = {}): Promise<void> {
+  async function load(force = false): Promise<void> {
     if (!force && loadedKey.value === filterKey.value) {
       return
     }
 
     const key = filterKey.value
 
-    if (!silent) {
-      loading.value = true
-      error.value = null
-    }
+    loading.value = true
+    error.value = null
 
     try {
-      const response = await photosApi.list({
-        anno: stato.value === 'bozze' ? null : anno.value,
-        speciali: soloSpeciali.value,
-        stato: stato.value,
-        // Un anno non può avere più di 366 foto: si carica tutto in una volta.
-        per_page: 500,
-      })
-
-      items.value = response.data
+      await paged.loadFirst()
       loadedKey.value = key
-      loadedAt.value = Date.now()
     } catch (cause) {
-      if (silent) {
-        return
-      }
-
       error.value = cause instanceof ApiError ? cause.message : 'Non riesco a caricare le foto.'
-      items.value = []
+      paged.clear()
       loadedKey.value = null
-      loadedAt.value = null
     } finally {
-      if (!silent) {
-        loading.value = false
-      }
+      loading.value = false
     }
   }
 
-  /** Se gli URL delle immagini stanno per scadere, ricarica la lista in silenzio. */
+  function loadMore(): Promise<void> {
+    return loading.value ? Promise.resolve() : paged.loadMore()
+  }
+
+  /**
+   * Se gli URL delle immagini stanno per scadere, ricarica in silenzio le
+   * foto già mostrate: niente spinner e, se fallisce, restano quelle che ci sono.
+   */
   async function refreshIfStale(): Promise<void> {
-    if (loadedKey.value !== null && !loading.value && signedUrlsAreStale(loadedAt.value)) {
-      await load(true, { silent: true })
+    if (loadedKey.value !== null && !loading.value && signedUrlsAreStale(paged.loadedAt.value)) {
+      await paged.reloadLoaded().catch(() => undefined)
     }
   }
 
@@ -102,22 +103,28 @@ export const usePhotosStore = defineStore('photos', () => {
     return items.value.find((photo) => photo.id === id)
   }
 
-  /** Aggiorna (o inserisce) una foto già caricata, mantenendo l'ordine per data. */
+  /**
+   * Aggiorna una foto già in elenco (al suo posto, poi riordinando) o ne
+   * inserisce una nuova, mantenendo l'ordine per data.
+   */
   function upsert(photo: Photo): void {
     const index = items.value.findIndex((item) => item.id === photo.id)
     const belongs = fitsFilters(photo)
 
-    if (index >= 0) {
+    if (index < 0) {
       if (belongs) {
-        items.value[index] = { ...items.value[index], ...photo }
-      } else {
-        items.value.splice(index, 1)
+        paged.insertSorted(photo)
       }
-    } else if (belongs) {
-      items.value.push(photo)
+
+      return
     }
 
-    items.value.sort((a, b) => (a.data === b.data ? b.id - a.id : b.data.localeCompare(a.data)))
+    if (belongs) {
+      items.value[index] = { ...items.value[index], ...photo }
+      items.value.sort(byDateDesc)
+    } else {
+      items.value.splice(index, 1)
+    }
   }
 
   function drop(id: number): void {
@@ -164,13 +171,12 @@ export const usePhotosStore = defineStore('photos', () => {
   }
 
   function reset(): void {
-    items.value = []
+    paged.clear()
     years.value = []
     anno.value = null
     soloSpeciali.value = false
     stato.value = 'pubblicate'
     loadedKey.value = null
-    loadedAt.value = null
     error.value = null
   }
 
@@ -181,10 +187,14 @@ export const usePhotosStore = defineStore('photos', () => {
     soloSpeciali,
     stato,
     loading,
+    loadingMore: paged.loadingMore,
+    moreError: paged.moreError,
+    hasMore: paged.hasMore,
     error,
     hasFilters,
     loadYears,
     load,
+    loadMore,
     setAnno,
     toggleSpeciali,
     setStato,

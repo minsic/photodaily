@@ -160,6 +160,7 @@ function photoQuery(filters: PhotoFilters) {
     speciali: filters.speciali ? 1 : undefined,
     stato: filters.stato,
     ordine: filters.ordine,
+    page: filters.page,
     per_page: filters.per_page,
   }
 }

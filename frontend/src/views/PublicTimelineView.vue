@@ -6,6 +6,7 @@ import AppIcon from '@/components/AppIcon.vue'
 import AppSpinner from '@/components/AppSpinner.vue'
 import FilterBar from '@/components/FilterBar.vue'
 import TimelineItem from '@/components/TimelineItem.vue'
+import { useInfiniteScroll } from '@/composables/useInfiniteScroll'
 import { useRefreshWhenVisible } from '@/composables/useRefreshWhenVisible'
 import { useNoIndex } from '@/composables/useNoIndex'
 import { usePublicDiaryStore } from '@/stores/publicDiary'
@@ -23,6 +24,11 @@ useNoIndex()
 
 // Tornando alla pagina dopo un po' gli URL delle immagini sarebbero scaduti.
 useRefreshWhenVisible(() => diary.refreshIfStale())
+
+// Le foto arrivano 50 alla volta: la pagina successiva si chiede quando
+// la fine della lista si avvicina.
+const sentinel = ref<HTMLElement | null>(null)
+useInfiniteScroll(sentinel, () => diary.loadMore(), () => diary.hasMore && !diary.moreError)
 
 onMounted(() => diary.open(props.slug))
 watch(() => props.slug, (slug) => diary.open(slug))
@@ -108,15 +114,24 @@ watch(() => props.slug, (slug) => diary.open(slug))
         <p class="font-bold">Nessuna foto da vedere qui.</p>
       </div>
 
-      <ul v-else class="mt-2">
-        <TimelineItem
-          v-for="photo in diary.items"
-          :key="photo.id"
-          :photo="photo"
-          :to="{ name: 'public-photo', params: { slug, id: photo.id } }"
-          :refresh="diary.refreshImage"
-        />
-      </ul>
+      <template v-else>
+        <ul class="mt-2">
+          <TimelineItem
+            v-for="photo in diary.items"
+            :key="photo.id"
+            :photo="photo"
+            :to="{ name: 'public-photo', params: { slug, id: photo.id } }"
+            :refresh="diary.refreshImage"
+          />
+        </ul>
+
+        <div ref="sentinel" aria-hidden="true" />
+        <AppSpinner v-if="diary.loadingMore" label="Carico altre foto…" />
+        <p v-else-if="diary.moreError" class="py-6 text-center text-sm text-brick">
+          Non riesco a caricare altre foto.
+          <button type="button" class="ml-2 font-bold underline" @click="diary.loadMore()">Riprova</button>
+        </p>
+      </template>
     </template>
   </main>
 </template>

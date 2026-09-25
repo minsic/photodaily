@@ -7,6 +7,7 @@ import AppIcon from '@/components/AppIcon.vue'
 import AppSpinner from '@/components/AppSpinner.vue'
 import FilterBar from '@/components/FilterBar.vue'
 import TimelineItem from '@/components/TimelineItem.vue'
+import { useInfiniteScroll } from '@/composables/useInfiniteScroll'
 import { useRefreshWhenVisible } from '@/composables/useRefreshWhenVisible'
 import { useAuthStore } from '@/stores/auth'
 import { usePhotosStore } from '@/stores/photos'
@@ -19,6 +20,11 @@ const menuOpen = ref(false)
 
 // Tornando alla PWA dopo un po' gli URL delle immagini sarebbero scaduti.
 useRefreshWhenVisible(() => photos.refreshIfStale())
+
+// Le foto arrivano 50 alla volta: la pagina successiva si chiede quando
+// la fine della lista si avvicina.
+const sentinel = ref<HTMLElement | null>(null)
+useInfiniteScroll(sentinel, () => photos.loadMore(), () => photos.hasMore && !photos.moreError)
 
 function onAnno(anno: number): void {
   photos.setAnno(anno)
@@ -150,8 +156,17 @@ async function logout(): Promise<void> {
       </p>
     </div>
 
-    <ul v-else class="mt-2">
-      <TimelineItem v-for="photo in photos.items" :key="photo.id" :photo="photo" />
-    </ul>
+    <template v-else>
+      <ul class="mt-2">
+        <TimelineItem v-for="photo in photos.items" :key="photo.id" :photo="photo" />
+      </ul>
+
+      <div ref="sentinel" aria-hidden="true" />
+      <AppSpinner v-if="photos.loadingMore" label="Carico altre foto…" />
+      <p v-else-if="photos.moreError" class="py-6 text-center text-sm text-brick">
+        Non riesco a caricare altre foto.
+        <button type="button" class="ml-2 font-bold underline" @click="photos.loadMore()">Riprova</button>
+      </p>
+    </template>
   </main>
 </template>

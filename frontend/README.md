@@ -26,7 +26,7 @@ Frontend e API stanno sullo stesso host: in sviluppo il proxy di Vite inoltra `/
 
 ## Scelte
 
-- **Timeline per anno.** Il selettore usa `GET /photos/anni` e la timeline carica in un colpo solo l'anno scelto (al massimo 366 foto), come faceva il vecchio sito ma senza scaricare l'intero archivio per calcolare gli anni.
+- **Timeline per anno, a pagine.** Il selettore usa `GET /photos/anni` e parte sempre dall'anno più recente (la scelta resta in memoria solo finché l'app è aperta). Le foto arrivano 50 alla volta: quando la fine della lista si avvicina un `IntersectionObserver` chiede la pagina successiva (`usePagedPhotos` + `useInfiniteScroll`, condivisi con il diario pubblico).
 - **Filtri**: anno, solo speciali, bozze. Le bozze restano separate dalle foto pubblicate.
 - **Miniature.** La timeline carica solo `thumbnail_url` (400px di lato lungo, circa 10-20 KB l'una); l'originale si scarica solo aprendo la foto, dove la miniatura fa da segnaposto mentre arriva.
 - **URL firmati che scadono.** `image_url` vale un'ora: se il browser non riesce più a caricare un'immagine perché la pagina è rimasta aperta a lungo, la foto viene richiesta di nuovo una volta sola per ottenere un URL fresco.

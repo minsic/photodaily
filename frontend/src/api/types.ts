@@ -127,6 +127,7 @@ export interface PhotoFilters {
   speciali?: boolean
   stato?: 'pubblicate' | 'bozze' | 'tutte'
   ordine?: 'asc' | 'desc'
+  page?: number
   per_page?: number
 }
 
