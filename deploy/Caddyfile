@@ -47,7 +47,7 @@ https:// {
 		# Tutto dallo stesso host, tranne le immagini: URL firmati del bucket R2
 		# (<account>.r2... e, per i bucket in UE, <account>.eu.r2...).
 		# blob: serve all'anteprima della foto da caricare. Nessuno script o
-		# stile inline: l'editor della didascalia ha injectCSS disattivato.
+		# stile inline (<style> o attributi style nell'HTML).
 		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob: https://*.r2.cloudflarestorage.com; font-src 'self'; connect-src 'self'; manifest-src 'self'; worker-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests"
 		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=(), browsing-topics=()"
 		-Server

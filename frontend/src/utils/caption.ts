@@ -34,3 +34,48 @@ export function captionWithoutLinks(html: string | null): string {
 
   return parsed.body.innerHTML
 }
+
+/**
+ * Testo da mettere nella textarea di modifica: i paragrafi diventano righe
+ * separate da una riga vuota, gli a capo restano a capo. Eventuale
+ * formattazione (grassetto, corsivo, link) si riduce al suo testo.
+ */
+export function captionToEditableText(html: string | null): string {
+  if (!html) {
+    return ''
+  }
+
+  const parsed = new DOMParser().parseFromString(html, 'text/html')
+  const blocks = Array.from(parsed.body.childNodes)
+  const hasParagraphs = blocks.some((node) => node.nodeName === 'P')
+
+  const textOf = (node: Node): string =>
+    Array.from(node.childNodes)
+      .map((child) => (child.nodeName === 'BR' ? '\n' : child.childNodes.length ? textOf(child) : (child.textContent ?? '')))
+      .join('')
+
+  return (hasParagraphs ? blocks.filter((node) => node.nodeName === 'P').map(textOf) : [textOf(parsed.body)])
+    .map((paragraph) => paragraph.trim())
+    .filter((paragraph) => paragraph !== '')
+    .join('\n\n')
+}
+
+/**
+ * Riporta il testo della textarea nel formato salvato dal server
+ * (CaptionHtml::fromPlainText): una riga vuota separa i paragrafi, un a capo
+ * diventa <br>. Si converte qui e non sul server perché, ricevendo testo, il
+ * server decide in base ai tag presenti: un "ti voglio bene <3" verrebbe
+ * scambiato per HTML malformato e troncato.
+ */
+export function editableTextToCaptionHtml(text: string): string {
+  const escape = (value: string) =>
+    value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+
+  return text
+    .replace(/\r\n?/g, '\n')
+    .split(/\n{2,}/)
+    .map((paragraph) => paragraph.trim())
+    .filter((paragraph) => paragraph !== '')
+    .map((paragraph) => `<p>${escape(paragraph).replace(/\n/g, '<br>')}</p>`)
+    .join('')
+}

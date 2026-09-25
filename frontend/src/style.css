@@ -83,15 +83,6 @@
   }
 }
 
-/* Segnaposto dell'editor: Tiptap marca il paragrafo vuoto, non c'è un input. */
-.tiptap p.is-editor-empty:first-child::before {
-  content: attr(data-placeholder);
-  float: left;
-  height: 0;
-  pointer-events: none;
-  color: color-mix(in oklab, var(--color-muted) 70%, transparent);
-}
-
 @utility card-shadow {
   box-shadow:
     0 1px 2px rgb(37 37 37 / 0.06),
@@ -106,38 +97,4 @@
   &[data-loaded='true'] {
     opacity: 1;
   }
-}
-
-/*
- * Regole di base dell'editor della didascalia (Tiptap/ProseMirror). Tiptap le
- * inietterebbe con un <style> inline, che la Content-Security-Policy blocca:
- * injectCSS è disattivato e restano qui solo quelle utili alle estensioni usate.
- */
-.ProseMirror {
-  position: relative;
-  word-wrap: break-word;
-  white-space: pre-wrap;
-  white-space: break-spaces;
-  font-variant-ligatures: none;
-  font-feature-settings: 'liga' 0;
-}
-
-.ProseMirror [contenteditable='false'] {
-  white-space: normal;
-}
-
-img.ProseMirror-separator {
-  display: inline !important;
-  border: none !important;
-  margin: 0 !important;
-  width: 0 !important;
-  height: 0 !important;
-}
-
-.ProseMirror-hideselection *::selection {
-  background: transparent;
-}
-
-.ProseMirror-hideselection * {
-  caret-color: transparent;
 }

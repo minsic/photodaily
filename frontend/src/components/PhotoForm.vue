@@ -4,7 +4,7 @@ import { computed, onBeforeUnmount, reactive, ref } from 'vue'
 import type { ValidationErrors } from '@/api/client'
 import type { Photo, PhotoPayload } from '@/api/types'
 import AppIcon from '@/components/AppIcon.vue'
-import RichTextEditor from '@/components/RichTextEditor.vue'
+import CaptionTextarea from '@/components/CaptionTextarea.vue'
 import { todayIso } from '@/utils/date'
 
 const props = withDefaults(
@@ -124,7 +124,7 @@ function fieldError(name: string): string | undefined {
 
     <div>
       <span id="didascalia-label" class="mb-1 block text-sm font-bold">Didascalia</span>
-      <RichTextEditor
+      <CaptionTextarea
         v-model="form.didascalia"
         placeholder="Cosa è successo oggi?"
         aria-labelledby="didascalia-label"

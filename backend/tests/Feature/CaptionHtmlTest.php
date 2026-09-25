@@ -70,6 +70,19 @@ class CaptionHtmlTest extends TestCase
         $this->assertStringContainsString('target="_blank"', $clean);
     }
 
+    public function test_the_html_built_by_the_caption_textarea_survives_unchanged(): void
+    {
+        // Il form converte il testo in <p>/<br> con &, <, > già escapati:
+        // "<3" e "&" non devono essere scambiati per markup.
+        $fromTextarea = '<p>ti voglio bene &lt;3<br>Tom &amp; Jerry 😀</p><p>l\'altro giorno</p>';
+
+        $sanitized = CaptionHtml::sanitize($fromTextarea);
+
+        // HTMLPurifier scrive <br /> invece di <br>: stesso elemento.
+        $this->assertSame($fromTextarea, str_replace('<br />', '<br>', $sanitized));
+        $this->assertSame("ti voglio bene <3\nTom & Jerry 😀\nl'altro giorno", CaptionHtml::toPlainText($sanitized));
+    }
+
     public function test_plain_text_becomes_html_keeping_the_line_breaks(): void
     {
         $this->assertSame(
