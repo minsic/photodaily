@@ -1,10 +1,12 @@
 <?php
 
 use App\Http\Middleware\ResolveHostFamily;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -19,5 +21,14 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
+        );
+
+        // Un ID inesistente deve rispondere esattamente come una risorsa di
+        // un'altra famiglia (Response::denyAsNotFound): il messaggio predefinito
+        // "No query results for model [...] 42" arriva al client anche in
+        // produzione e permetterebbe di distinguere i due casi.
+        $exceptions->map(
+            ModelNotFoundException::class,
+            fn (ModelNotFoundException $e) => new NotFoundHttpException('Not Found', $e),
         );
     })->create();

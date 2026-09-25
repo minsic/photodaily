@@ -114,8 +114,8 @@ class HostFamilyTest extends TestCase
     {
         Sanctum::actingAs(User::factory()->for($this->giopellino)->create());
 
-        $this->getJson('https://rossi.photodaily.app/api/me')->assertForbidden();
-        $this->getJson('https://rossi.photodaily.app/api/photos')->assertForbidden();
+        $this->getJson('https://rossi.photodaily.app/api/me')->assertNotFound();
+        $this->getJson('https://rossi.photodaily.app/api/photos')->assertNotFound();
 
         $this->getJson('https://giopellino.it/api/me')->assertOk();
         $this->getJson('https://photodaily.app/api/me')->assertOk();
