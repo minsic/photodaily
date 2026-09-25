@@ -10,6 +10,7 @@ Internet ─▶ Caddy :443 ─┬─ /api/*  ─▶ PHP-FPM 8.4 (Laravel) ─▶
   domini delle famiglie
 ```
 
+- **Header di sicurezza**: Caddy aggiunge Content-Security-Policy (niente script o stili inline, immagini solo da sé e dal bucket R2), Permissions-Policy, HSTS e affini. Se il frontend comincia a usare un'origine nuova va aggiunta lì; `npm run preview:csp` nel frontend prova la build in locale con gli stessi header.
 - **Caddy** chiede da solo i certificati HTTPS al primo accesso a ogni host (on-demand TLS), ma solo se `GET /api/tls/ask` conferma che l'host è `photodaily.app` o di una famiglia.
 - **Release**: ogni deploy crea `/var/www/photodaily/releases/<data>`. Il link `current` passa alla nuova release solo quando dipendenze, build e migrazioni sono andate a buon fine; si tengono le ultime 5.
 - **Condivisi fra release**: `shared/.env` e `shared/storage` (log, cache, sessioni).

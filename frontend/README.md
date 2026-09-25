@@ -11,6 +11,7 @@ cp .env.example .env   # VITE_API_URL=/api
 npm run dev            # http://localhost:5173 (indirizzo principale)
                        # http://giopellino.localhost:5173 (diario della famiglia giopellino)
 npm run build          # type-check (vue-tsc) + build in dist/
+npm run preview:csp    # la build con gli header di sicurezza di deploy/Caddyfile (CSP compresa)
 ```
 
 Frontend e API stanno sullo stesso host: in sviluppo il proxy di Vite inoltra `/api` a `http://photodaily.test` e passa l'host originale in `X-Forwarded-Host` (il backend lo accetta perché il suo `.env` ha `TRUSTED_PROXIES=127.0.0.1`). I sottodomini di `localhost` puntano già al proprio computer, senza toccare il file hosts.

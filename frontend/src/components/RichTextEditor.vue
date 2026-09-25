@@ -33,6 +33,9 @@ const emit = defineEmits<{ 'update:modelValue': [value: string] }>()
 
 const editor = useEditor({
   content: props.modelValue,
+  // Tiptap aggiungerebbe un <style> inline, bloccato dalla Content-Security-Policy:
+  // le regole che servono stanno in style.css.
+  injectCSS: false,
   extensions: [
     Document,
     Paragraph,

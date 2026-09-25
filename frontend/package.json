@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc -b && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "preview:csp": "vite preview --config vite.csp-preview.config.ts --port 4173"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.3",
