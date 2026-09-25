@@ -23,6 +23,11 @@ class UserResource extends JsonResource
             'name' => $this->name,
             'email' => $this->email,
             'role' => $this->role,
+            // Promemoria serale: preferenze personali, l'orario è nel fuso della famiglia.
+            'promemoria' => [
+                'attivo' => (bool) $this->reminder_enabled,
+                'orario' => substr((string) ($this->reminder_time ?? '20:30'), 0, 5),
+            ],
             'family' => FamilyResource::make($this->whenLoaded('family')),
         ];
     }

@@ -4,6 +4,7 @@ import type { PhotoCalendar } from '@/api/types'
 
 import { buildCalendar, describeProgress } from './calendar'
 import { isIsoDate, todayIso } from './date'
+import { vapidKeyToBytes } from './push'
 
 const calendar: PhotoCalendar = {
   anno: 2026,
@@ -83,5 +84,12 @@ describe('isIsoDate', () => {
     expect(isIsoDate('2025-02-29')).toBe(false)
     expect(isIsoDate('15/03/2026')).toBe(false)
     expect(isIsoDate(undefined)).toBe(false)
+  })
+})
+
+describe('vapidKeyToBytes', () => {
+  it('decodifica il base64 url-safe senza padding della chiave VAPID', () => {
+    // "AQID_-8" = byte 1, 2, 3, 255, 239
+    expect([...vapidKeyToBytes('AQID_-8')]).toEqual([1, 2, 3, 255, 239])
   })
 })

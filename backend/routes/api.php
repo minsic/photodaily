@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\InviteController;
 use App\Http\Controllers\Api\PhotoController;
 use App\Http\Controllers\Api\PublicAccessController;
 use App\Http\Controllers\Api\PublicPhotoController;
+use App\Http\Controllers\Api\PushController;
 use App\Http\Controllers\Api\SiteController;
 use App\Http\Middleware\EnsureHostFamilyMember;
 use App\Http\Middleware\EnsurePublicFamilyAccess;
@@ -43,6 +44,11 @@ Route::prefix('public/{family_slug}')->group(function () {
 Route::middleware(['auth:sanctum', EnsureHostFamilyMember::class])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
+    Route::patch('/me/promemoria', [PushController::class, 'updatePreferences']);
+
+    Route::get('/push/config', [PushController::class, 'config']);
+    Route::post('/push/iscrizioni', [PushController::class, 'subscribe']);
+    Route::delete('/push/iscrizioni', [PushController::class, 'unsubscribe']);
 
     Route::get('/invites', [InviteController::class, 'index']);
     Route::post('/invites', [InviteController::class, 'store']);

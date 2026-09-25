@@ -9,6 +9,7 @@
         "php": "^8.3",
         "ezyang/htmlpurifier": "^4.19",
         "intervention/image": "^4.3",
+        "laravel-notification-channels/webpush": "^13.0",
         "laravel/framework": "^13.17",
         "laravel/sanctum": "^4.3",
         "laravel/tinker": "^3.0",

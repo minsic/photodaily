@@ -56,6 +56,15 @@ Internet ─▶ Caddy :443 ─┬─ /api/*  ─▶ PHP-FPM 8.4 (Laravel) ─▶
    sudo -u photodaily php artisan family:create giopellino "Giopellino" --admin-email=... --domain=giopellino.it
    ```
 
+## Promemoria serale (Web Push)
+
+Le chiavi VAPID si generano una volta sola sul server e non si cambiano più (cambiandole, tutti i dispositivi iscritti smettono di ricevere):
+```sh
+cd /var/www/photodaily/current/backend
+php artisan webpush:vapid          # scrive VAPID_PUBLIC_KEY e VAPID_PRIVATE_KEY in shared/.env
+```
+Poi `VAPID_SUBJECT=mailto:...` nel `.env` e i comandi qui sotto. Il comando `photos:send-reminders` gira ogni 15 minuti tramite lo scheduler (cron di `/etc/cron.d/photodaily`), le versioni ridotte delle foto le genera il worker `photodaily-queue`.
+
 ## Dopo aver modificato `.env`
 
 La configurazione è in cache e OPcache non ricontrolla i file: senza questi due comandi PHP-FPM continua a usare i valori vecchi (la riga di comando invece vede subito quelli nuovi, quindi un test con `tinker` può passare mentre il sito sbaglia).

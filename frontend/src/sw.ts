@@ -7,6 +7,8 @@
  *   (gli URL firmati cambiano a ogni richiesta).
  * - Web Share Target: riceve le foto condivise dalla galleria con una POST su
  *   /condividi, le parcheggia in IndexedDB e manda l'app su /carica.
+ * - Promemoria serale (Web Push): mostra la notifica e al tocco apre /carica
+ *   con la data di oggi.
  *
  * Il service worker non fa mai chiamate all'API autenticata: non conosce il
  * token dell'utente e non deve conoscerlo.
@@ -51,3 +53,56 @@ async function receiveShare(request: Request): Promise<Response> {
   // 303: dopo una POST il browser apre la pagina con una GET.
   return Response.redirect('/carica?condiviso=1', 303)
 }
+
+interface ReminderPayload {
+  title?: string
+  body?: string
+  icon?: string
+  badge?: string
+  tag?: string
+  data?: { url?: string }
+}
+
+self.addEventListener('push', (event) => {
+  let payload: ReminderPayload = {}
+
+  try {
+    payload = event.data?.json() ?? {}
+  } catch {
+    payload = { body: event.data?.text() }
+  }
+
+  event.waitUntil(
+    self.registration.showNotification(payload.title ?? 'PhotoDaily', {
+      body: payload.body,
+      icon: payload.icon ?? '/icons/android-chrome-192x192.png',
+      badge: payload.badge,
+      tag: payload.tag,
+      data: payload.data,
+    }),
+  )
+})
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close()
+
+  // Solo percorsi dell'app: un URL esterno nella notifica non si apre.
+  const target = new URL(event.notification.data?.url ?? '/', self.location.origin)
+  const url = target.origin === self.location.origin ? target.href : self.location.origin
+
+  event.waitUntil(
+    (async () => {
+      const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true })
+
+      for (const client of windows) {
+        if (client.url.startsWith(self.location.origin)) {
+          await client.navigate(url).catch(() => undefined)
+
+          return client.focus()
+        }
+      }
+
+      return self.clients.openWindow(url)
+    })(),
+  )
+})

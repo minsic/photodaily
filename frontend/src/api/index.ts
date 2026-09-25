@@ -13,6 +13,7 @@ import type {
   PhotoPayload,
   Protagonist,
   ReadAccess,
+  ReminderPreferences,
   SiteFamily,
   User,
   YearSummary,
@@ -41,6 +42,33 @@ export const auth = {
 
   me() {
     return api<{ data: User }>('/me').then((response) => response.data)
+  },
+}
+
+/** Promemoria serale: iscrizioni Web Push del dispositivo e preferenze personali. */
+export const push = {
+  config() {
+    return api<{ data: { public_key: string | null } }>('/push/config').then((response) => response.data)
+  },
+
+  subscribe(subscription: PushSubscription) {
+    const json = subscription.toJSON()
+    const encoding = (PushManager as unknown as { supportedContentEncodings?: string[] }).supportedContentEncodings
+
+    return api<void>('/push/iscrizioni', {
+      method: 'POST',
+      body: { endpoint: json.endpoint, keys: json.keys, content_encoding: encoding?.[0] ?? 'aes128gcm' },
+    })
+  },
+
+  unsubscribe(endpoint: string) {
+    return api<void>('/push/iscrizioni', { method: 'DELETE', body: { endpoint } })
+  },
+
+  setPreferences(preferences: Partial<ReminderPreferences>) {
+    return api<{ data: User }>('/me/promemoria', { method: 'PATCH', body: preferences }).then(
+      (response) => response.data,
+    )
   },
 }
 

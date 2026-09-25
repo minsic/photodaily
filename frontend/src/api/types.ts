@@ -43,11 +43,18 @@ export interface Family {
   plan?: Plan
 }
 
+export interface ReminderPreferences {
+  attivo: boolean
+  /** HH:MM, nel fuso della famiglia. */
+  orario: string
+}
+
 export interface User {
   id: number
   name: string
   email: string
   role: Role
+  promemoria: ReminderPreferences
   family?: Family
 }
 
