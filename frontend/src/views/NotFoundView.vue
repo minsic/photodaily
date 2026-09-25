@@ -1,16 +1,26 @@
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
+
+import { useSiteStore } from '@/stores/site'
+
+const site = useSiteStore()
 </script>
 
 <template>
   <main class="flex min-h-dvh flex-col items-center justify-center gap-3 px-4 text-center">
-    <h1 class="text-2xl font-bold">Pagina non trovata</h1>
-    <p class="text-muted">Il link che hai seguito non porta da nessuna parte.</p>
-    <RouterLink
-      :to="{ name: 'timeline' }"
-      class="rounded-xl bg-brick px-4 py-2.5 font-bold text-white"
-    >
-      Torna alla timeline
-    </RouterLink>
+    <template v-if="site.kind === 'unknown'">
+      <h1 class="text-2xl font-bold">Diario non trovato</h1>
+      <p class="text-muted">A questo indirizzo non c'è nessun diario PhotoDaily.</p>
+    </template>
+    <template v-else>
+      <h1 class="text-2xl font-bold">Pagina non trovata</h1>
+      <p class="text-muted">Il link che hai seguito non porta da nessuna parte.</p>
+      <RouterLink
+        :to="{ name: 'timeline' }"
+        class="rounded-xl bg-brick px-4 py-2.5 font-bold text-white"
+      >
+        Torna alla timeline
+      </RouterLink>
+    </template>
   </main>
 </template>

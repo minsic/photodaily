@@ -11,9 +11,19 @@ import type {
   PhotoFilters,
   PhotoPayload,
   ReadAccess,
+  SiteFamily,
   User,
   YearSummary,
 } from './types'
+
+/** Famiglia servita dall'host corrente, null sull'indirizzo principale. */
+export const site = {
+  get() {
+    return api<{ data: { family: SiteFamily | null } }>('/site', { token: null }).then(
+      (response) => response.data.family,
+    )
+  },
+}
 
 export const auth = {
   login(email: string, password: string) {

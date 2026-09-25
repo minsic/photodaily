@@ -44,6 +44,16 @@ In produzione `upload_max_filesize` e `post_max_size` devono stare sopra `PHOTOS
 - `PhotoPolicy` risponde **404** per le foto di altre famiglie, così non se ne rivela l'esistenza. L'elenco filtra per `family_id` e la navigazione precedente/successiva resta nella stessa famiglia.
 - I test in `tests/Feature/TenantIsolationTest.php` coprono lettura, modifica, cancellazione, elenco, navigazione e upload tra famiglie diverse.
 
+### Indirizzi delle famiglie
+
+- `FRONTEND_URL` è l'indirizzo principale del servizio (in produzione `https://photodaily.app`). Ogni famiglia è servita su `<slug>.photodaily.app` e, se ha `families.custom_domain`, anche sul suo dominio (es. `giopellino.it`, con o senza `www.`). Schema e porta vengono da `FRONTEND_URL`: in sviluppo `http://giopellino.localhost:5173`.
+- Frontend e API stanno sullo stesso host (`/api`), così il middleware `ResolveHostFamily` riconosce la famiglia dall'host della richiesta. Serve solo a restringere, non a scegliere i dati:
+  - `GET /api/site` dice al frontend di quale diario è l'host (`family: null` sull'host principale, 404 su host sconosciuti);
+  - sull'host di una famiglia il login accetta solo i suoi membri, le rotte autenticate rispondono 403 a token di altre famiglie e gli inviti di altre famiglie danno 404.
+- `GET /api/tls/ask?domain=...` risponde 200 solo per l'host principale e per gli host delle famiglie: lo usa Caddy prima di chiedere un certificato (on-demand TLS).
+- Gli slug sono etichette DNS (minuscole, cifre, trattini) ed escludono quelli riservati (`Family::RESERVED_SLUGS`: `www`, `api`, `admin`...).
+- In sviluppo il proxy di Vite inoltra `/api` a Herd e passa l'host originale in `X-Forwarded-Host`: per questo `.env` locale ha `TRUSTED_PROXIES=127.0.0.1`. In produzione lasciarlo vuoto.
+
 ## Accesso in sola lettura (`families.access_mode`)
 
 Ogni famiglia sceglie come esporre le proprie foto in lettura. La scrittura (upload, modifica, cancellazione, inviti) resta **sempre** riservata ai membri autenticati, in ogni modalità.
@@ -76,7 +86,7 @@ Il token non è un token Sanctum e non è accettato dalle rotte autenticate: per
 
 ```sh
 # Crea una famiglia con il suo primo admin (la password viene chiesta, oppure generata con --no-interaction)
-php artisan family:create giopellino "Giopellino" --admin-email=... --admin-name=... --app-url=https://giopellino.it
+php artisan family:create giopellino "Giopellino" --admin-email=... --admin-name=... --domain=giopellino.it
 
 # Importa un export Sanity (cartella con data.ndjson e images/, oppure il file .ndjson)
 php artisan photos:import giopellino /percorso/export --dry-run
@@ -155,4 +165,4 @@ Esempio di foto:
 }
 ```
 
-Il link di invito punta a `{families.app_url || FRONTEND_URL}/invite/{token}` (percorso configurabile con `INVITE_PATH`). Nel database si salva solo l'hash SHA-256 del token.
+Il link di invito punta all'indirizzo della famiglia (`Family::url()`, vedi sotto) seguito da `/invite/{token}` (percorso configurabile con `INVITE_PATH`). Nel database si salva solo l'hash SHA-256 del token.

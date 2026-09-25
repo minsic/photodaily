@@ -15,11 +15,11 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 
 #[Signature('family:create
-    {slug : Identificativo univoco della famiglia (es. giopellino)}
+    {slug : Identificativo univoco, diventa il sottodominio (es. giopellino)}
     {name : Nome visualizzato della famiglia}
     {--admin-email= : Email dell\'amministratore della famiglia}
     {--admin-name= : Nome dell\'amministratore}
-    {--app-url= : URL del frontend della famiglia, usato nei link di invito (es. https://giopellino.it)}
+    {--domain= : Dominio proprio della famiglia, oltre al sottodominio (es. giopellino.it)}
     {--plan= : Slug del piano (default: piano di default)}')]
 #[Description('Crea una famiglia con il suo primo amministratore')]
 class CreateFamily extends Command
@@ -42,17 +42,25 @@ class CreateFamily extends Command
             'email' => is_string($email) ? mb_strtolower(trim($email)) : $email,
             'admin_name' => $adminName,
             'password' => $password,
-            'app_url' => $this->option('app-url'),
+            'custom_domain' => is_string($this->option('domain')) ? Family::normalizeHost($this->option('domain')) : null,
             'plan' => $this->option('plan') ?: config('photodaily.default_plan'),
         ];
 
         $validator = Validator::make($input, [
-            'slug' => ['required', 'alpha_dash:ascii', 'max:64', Rule::unique('families', 'slug')],
+            // Lo slug è un'etichetta DNS: minuscole, cifre e trattini, non ai bordi.
+            'slug' => [
+                'required', 'max:63', 'regex:/^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/',
+                Rule::notIn(Family::RESERVED_SLUGS), Rule::unique('families', 'slug'),
+            ],
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')],
             'admin_name' => ['required', 'string', 'max:255'],
             'password' => ['required', Password::defaults()],
-            'app_url' => ['nullable', 'url'],
+            'custom_domain' => [
+                'nullable', 'max:253', 'regex:/^([a-z0-9]([a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}$/',
+                'not_regex:/(^|\.)'.preg_quote(Family::mainHost(), '/').'$/',
+                Rule::unique('families', 'custom_domain'),
+            ],
             'plan' => ['required', Rule::exists('plans', 'slug')],
         ]);
 
@@ -66,7 +74,7 @@ class CreateFamily extends Command
             $family = Family::create([
                 'slug' => $input['slug'],
                 'name' => $input['name'],
-                'app_url' => $input['app_url'],
+                'custom_domain' => $input['custom_domain'],
                 'plan_id' => Plan::query()->where('slug', $input['plan'])->value('id'),
             ]);
 
@@ -82,6 +90,7 @@ class CreateFamily extends Command
 
         $this->components->info("Famiglia [{$family->slug}] creata (id {$family->id}).");
         $this->components->twoColumnDetail('Amministratore', $admin->email);
+        $this->components->twoColumnDetail('Indirizzo', $family->url());
         $this->components->twoColumnDetail('Piano', $input['plan']);
 
         if ($generatedPassword) {

@@ -4,8 +4,10 @@ import { useRoute, useRouter } from 'vue-router'
 
 import { ApiError } from '@/api/client'
 import { useAuthStore } from '@/stores/auth'
+import { useSiteStore } from '@/stores/site'
 
 const auth = useAuthStore()
+const site = useSiteStore()
 const router = useRouter()
 const route = useRoute()
 
@@ -41,7 +43,10 @@ async function onSubmit(): Promise<void> {
       <h1 class="text-center text-3xl font-bold tracking-tight">
         Photo<span class="text-brick">Daily</span>
       </h1>
-      <p class="mt-2 text-center text-sm text-muted">Il diario fotografico di famiglia.</p>
+      <p v-if="site.family" class="mt-2 text-center text-sm text-muted">
+        Il diario di <strong class="text-ink">{{ site.family.name }}</strong>
+      </p>
+      <p v-else class="mt-2 text-center text-sm text-muted">Il diario fotografico di famiglia.</p>
 
       <form class="mt-8 space-y-4" novalidate @submit.prevent="onSubmit">
         <div>

@@ -14,12 +14,21 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Hash;
 use InvalidArgumentException;
 
-#[Fillable(['name', 'slug', 'plan_id', 'app_url'])]
+#[Fillable(['name', 'slug', 'custom_domain', 'plan_id'])]
 #[Hidden(['access_password_hash'])]
 class Family extends Model
 {
     /** @use HasFactory<FamilyFactory> */
     use HasFactory;
+
+    /**
+     * Slug che non possono diventare sottodomini di una famiglia,
+     * perché servono (o serviranno) al servizio stesso.
+     */
+    public const RESERVED_SLUGS = [
+        'admin', 'api', 'app', 'assets', 'blog', 'cdn', 'dev', 'docs', 'help', 'mail',
+        'photodaily', 'static', 'staging', 'status', 'support', 'test', 'www',
+    ];
 
     /**
      * @var array<string, mixed>
@@ -123,11 +132,60 @@ class Family extends Model
         ])->save();
     }
 
+    /**
+     * Host principale del servizio (es. photodaily.app), ricavato da FRONTEND_URL.
+     * Le famiglie ne sono sottodomini: <slug>.photodaily.app.
+     */
+    public static function mainHost(): string
+    {
+        return strtolower((string) parse_url(config('photodaily.frontend_url'), PHP_URL_HOST));
+    }
+
+    /**
+     * Famiglia servita dall'host indicato: il suo sottodominio o il suo
+     * dominio proprio, con o senza "www.". Null per l'host principale
+     * e per qualsiasi host che non corrisponde a una famiglia.
+     */
+    public static function forHost(string $host): ?self
+    {
+        $host = static::normalizeHost($host);
+        $suffix = '.'.static::mainHost();
+
+        if (str_ends_with($host, $suffix)) {
+            $slug = substr($host, 0, -strlen($suffix));
+
+            return str_contains($slug, '.') ? null : static::query()->where('slug', $slug)->first();
+        }
+
+        return $host === '' ? null : static::query()->where('custom_domain', $host)->first();
+    }
+
+    /**
+     * Minuscolo, senza porta, punto finale e "www." iniziale.
+     */
+    public static function normalizeHost(string $host): string
+    {
+        $host = strtolower(rtrim(preg_replace('/:\d+$/', '', trim($host)), '.'));
+
+        return preg_replace('/^www\./', '', $host);
+    }
+
+    /**
+     * Indirizzo del diario: il dominio proprio se c'è, altrimenti il sottodominio.
+     * Schema e porta sono quelli di FRONTEND_URL (in sviluppo http e :5173).
+     */
+    public function url(): string
+    {
+        $frontend = parse_url(config('photodaily.frontend_url'));
+        $host = $this->custom_domain ?: $this->slug.'.'.static::mainHost();
+        $port = isset($frontend['port']) ? ':'.$frontend['port'] : '';
+
+        return ($frontend['scheme'] ?? 'https').'://'.$host.$port;
+    }
+
     public function inviteUrl(string $token): string
     {
-        $base = rtrim($this->app_url ?: config('photodaily.frontend_url'), '/');
-
-        return $base.str_replace('{token}', $token, config('photodaily.invite_path'));
+        return $this->url().str_replace('{token}', $token, config('photodaily.invite_path'));
     }
 
     /**

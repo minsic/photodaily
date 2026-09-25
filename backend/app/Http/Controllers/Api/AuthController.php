@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Middleware\ResolveHostFamily;
 use App\Http\Requests\LoginRequest;
 use App\Http\Resources\UserResource;
 use App\Models\User;
@@ -20,7 +21,13 @@ class AuthController extends Controller
             ->where('email', mb_strtolower($request->validated('email')))
             ->first();
 
-        if (! $user || ! Hash::check($request->validated('password'), $user->password)) {
+        $hostFamily = ResolveHostFamily::from($request);
+
+        // Sull'indirizzo di una famiglia entrano solo i suoi membri; stesso
+        // messaggio delle credenziali sbagliate, per non dire che l'account esiste.
+        if (! $user
+            || ! Hash::check($request->validated('password'), $user->password)
+            || ($hostFamily !== null && $user->family_id !== $hostFamily->id)) {
             throw ValidationException::withMessages([
                 'email' => 'Credenziali non valide.',
             ]);

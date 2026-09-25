@@ -36,6 +36,23 @@ export default defineConfig({
       },
     }),
   ],
+  server: {
+    // Come in produzione, l'API sta sullo stesso host del frontend (/api).
+    // Herd distingue i siti dall'host, quindi la richiesta arriva come
+    // photodaily.test e l'host del frontend (es. giopellino.localhost:5173)
+    // viaggia in X-Forwarded-Host: è da lì che il backend riconosce la famiglia.
+    proxy: {
+      '/api': {
+        target: 'http://photodaily.test',
+        changeOrigin: true,
+        configure(proxy) {
+          proxy.on('proxyReq', (proxyReq, req) => {
+            proxyReq.setHeader('X-Forwarded-Host', req.headers.host ?? '')
+          })
+        },
+      },
+    },
+  },
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),

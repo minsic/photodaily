@@ -10,10 +10,20 @@ export interface Plan {
   price_monthly_cents: number
 }
 
+/** Quanto dice GET /site della famiglia servita dall'host corrente. */
+export interface SiteFamily {
+  name: string
+  slug: string
+  access_mode: AccessMode
+}
+
 export interface Family {
   id: number
   name: string
   slug: string
+  custom_domain: string | null
+  /** Indirizzo del diario: dominio proprio o <slug>.photodaily.app. */
+  url: string
   access_mode: AccessMode
   storage_used_mb: number
   photos_count?: number

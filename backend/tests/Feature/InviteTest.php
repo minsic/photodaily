@@ -20,8 +20,9 @@ class InviteTest extends TestCase
     public function test_admin_can_invite_a_new_member_by_email(): void
     {
         Notification::fake();
+        config(['photodaily.frontend_url' => 'https://photodaily.app']);
 
-        $family = Family::factory()->create(['app_url' => 'https://giopellino.it']);
+        $family = Family::factory()->create(['slug' => 'giopellino', 'custom_domain' => 'giopellino.it']);
         $admin = User::factory()->admin()->for($family)->create();
 
         Sanctum::actingAs($admin);

@@ -16,7 +16,6 @@ class DatabaseSeeder extends Seeder
         $family = Family::create([
             'name' => 'Giopellino',
             'slug' => 'giopellino',
-            'app_url' => 'http://localhost:5173',
         ]);
 
         User::factory()->admin()->for($family)->create([

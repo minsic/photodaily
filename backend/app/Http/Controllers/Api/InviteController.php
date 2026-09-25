@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Enums\Role;
 use App\Http\Controllers\Controller;
+use App\Http\Middleware\ResolveHostFamily;
 use App\Http\Requests\AcceptInviteRequest;
 use App\Http\Requests\StoreInviteRequest;
 use App\Http\Resources\InviteResource;
@@ -88,11 +89,11 @@ class InviteController extends Controller
     /**
      * Dati minimi per la pagina di accettazione del frontend.
      */
-    public function show(string $token): JsonResponse
+    public function show(Request $request, string $token): JsonResponse
     {
         $invite = Invite::query()->pendingWithToken($token)->with('family')->first();
 
-        abort_if(! $invite, 404, self::INVALID_INVITE);
+        abort_if(! $invite || ! $this->matchesHost($request, $invite), 404, self::INVALID_INVITE);
 
         return response()->json([
             'data' => [
@@ -108,7 +109,7 @@ class InviteController extends Controller
         $user = DB::transaction(function () use ($request, $token) {
             $invite = Invite::query()->pendingWithToken($token)->lockForUpdate()->first();
 
-            abort_if(! $invite, 404, self::INVALID_INVITE);
+            abort_if(! $invite || ! $this->matchesHost($request, $invite), 404, self::INVALID_INVITE);
 
             if (User::query()->where('email', $invite->email)->exists()) {
                 throw ValidationException::withMessages([
@@ -133,5 +134,16 @@ class InviteController extends Controller
             'token' => $user->createToken($request->validated('device_name') ?? 'spa')->plainTextToken,
             'user' => UserResource::make($user->load('family.plan')),
         ], 201);
+    }
+
+    /**
+     * Un invito si apre sull'indirizzo della sua famiglia (o su quello principale),
+     * non sotto il dominio di un'altra.
+     */
+    private function matchesHost(Request $request, Invite $invite): bool
+    {
+        $family = ResolveHostFamily::from($request);
+
+        return $family === null || $family->id === $invite->family_id;
     }
 }

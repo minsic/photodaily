@@ -45,15 +45,31 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Invites
+    | Hosts
     |--------------------------------------------------------------------------
     |
-    | Il link di invito punta al frontend della famiglia (families.app_url) o,
-    | se non impostato, a FRONTEND_URL.
+    | FRONTEND_URL è l'indirizzo principale del servizio (https://photodaily.app).
+    | Ogni famiglia è servita su <slug>.<host principale> e, se lo ha, sul suo
+    | dominio proprio; schema e porta sono quelli di FRONTEND_URL. In sviluppo
+    | http://localhost:5173 dà http://giopellino.localhost:5173.
+    |
+    | TRUSTED_PROXIES: IP dei proxy da cui accettare X-Forwarded-Host
+    | (in sviluppo 127.0.0.1, per il proxy di Vite; in produzione vuoto).
     |
     */
 
     'frontend_url' => env('FRONTEND_URL', 'http://localhost:5173'),
+
+    'trusted_proxies' => env('TRUSTED_PROXIES'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Invites
+    |--------------------------------------------------------------------------
+    |
+    | Il link di invito punta all'indirizzo della famiglia (Family::url()).
+    |
+    */
 
     'invite_path' => env('INVITE_PATH', '/invite/{token}'),
 

@@ -7,12 +7,13 @@ Sostituisce il vecchio client su vue-cli che leggeva direttamente da Sanity: ora
 
 ```sh
 npm install
-cp .env.example .env   # VITE_API_URL=http://photodaily.test/api
-npm run dev            # http://localhost:5173
+cp .env.example .env   # VITE_API_URL=/api
+npm run dev            # http://localhost:5173 (indirizzo principale)
+                       # http://giopellino.localhost:5173 (diario della famiglia giopellino)
 npm run build          # type-check (vue-tsc) + build in dist/
 ```
 
-L'origine del dev server deve comparire in `CORS_ALLOWED_ORIGINS` nel `.env` del backend.
+Frontend e API stanno sullo stesso host: in sviluppo il proxy di Vite inoltra `/api` a `http://photodaily.test` e passa l'host originale in `X-Forwarded-Host` (il backend lo accetta perché il suo `.env` ha `TRUSTED_PROXIES=127.0.0.1`). I sottodomini di `localhost` puntano già al proprio computer, senza toccare il file hosts.
 
 ## Come è fatto
 
@@ -30,6 +31,7 @@ L'origine del dev server deve comparire in `CORS_ALLOWED_ORIGINS` nel `.env` del
 - **URL firmati che scadono.** `image_url` vale un'ora: se il browser non riesce più a caricare un'immagine perché la pagina è rimasta aperta a lungo, la foto viene richiesta di nuovo una volta sola per ottenere un URL fresco.
 - **Tema chiaro e scuro** dalla palette del vecchio PhotoDaily, via token CSS ridefiniti sotto `prefers-color-scheme`.
 - **Sezione impostazioni** (`/impostazioni`, solo admin): invita nuovi membri, elenca e revoca gli inviti, sceglie chi può vedere il diario e mostra il link da condividere.
+- **Indirizzo = famiglia.** All'avvio `GET /api/site` dice di quale diario è l'host (store `site`). Sull'indirizzo di una famiglia il login mostra il suo nome e, se il diario è pubblico o con password, chi non ha un account finisce direttamente sul diario in sola lettura. Un sottodominio sconosciuto mostra "Diario non trovato".
 - **Diario pubblico** (`/pub/:slug`): timeline e dettaglio in sola lettura, senza alcuna azione di scrittura. In modalità password chiede la password condivisa e conserva il token di sola lettura per quello slug; se la famiglia è privata (o lo slug non esiste) mostra la stessa pagina "non è pubblico", senza distinguere i due casi. Su queste pagine, e su quella di accettazione invito, viene forzato `robots: noindex, nofollow`.
 - **PWA**: viene messo in cache solo il guscio dell'app. Le foto no: gli URL firmati cambiano a ogni richiesta, quindi una cache per URL sarebbe inutile.
 

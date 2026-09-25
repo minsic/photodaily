@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
 import { useAuthStore } from '@/stores/auth'
+import { useSiteStore } from '@/stores/site'
 import TimelineView from '@/views/TimelineView.vue'
 
 declare module 'vue-router' {
@@ -87,9 +88,21 @@ const router = createRouter({
 
 router.beforeEach(async (to) => {
   const auth = useAuthStore()
+  const site = useSiteStore()
 
-  if (!auth.ready) {
-    await auth.restore()
+  await Promise.all([site.ready || site.load(), auth.ready || auth.restore()])
+
+  // Sottodominio che non corrisponde a nessuna famiglia.
+  if (site.kind === 'unknown') {
+    return to.name === 'not-found'
+      ? true
+      : { name: 'not-found', params: { pathMatch: to.path.split('/').filter(Boolean) } }
+  }
+
+  // Sull'indirizzo di un diario pubblico (o con password) chi non ha un
+  // account vede il diario in sola lettura invece del login.
+  if (to.name === 'timeline' && !auth.isLoggedIn && site.family && site.family.access_mode !== 'private') {
+    return { name: 'public-timeline', params: { slug: site.family.slug } }
   }
 
   if (to.meta.guest) {
