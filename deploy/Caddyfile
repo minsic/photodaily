@@ -20,7 +20,15 @@
 # Solo per la domanda di Caddy a se stesso: raggiungibile solo in locale.
 http://127.0.0.1:8081 {
 	bind 127.0.0.1
-	import photodaily_app
+
+	# route mantiene l'ordine: se Laravel non risponde (per esempio prima del
+	# primo deploy) si arriva a 404, mai al 200 vuoto che varrebbe come "sì".
+	route /api/tls/ask {
+		import photodaily_app
+		respond 404
+	}
+
+	respond 404
 }
 
 https:// {
