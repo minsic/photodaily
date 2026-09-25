@@ -79,6 +79,7 @@ class HostFamilyTest extends TestCase
                 'name' => $this->giopellino->name,
                 'slug' => 'giopellino',
                 'access_mode' => 'public',
+                'timezone' => 'Europe/Rome',
                 'protagonist' => null,
             ]]]);
 

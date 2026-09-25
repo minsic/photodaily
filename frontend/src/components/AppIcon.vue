@@ -6,6 +6,7 @@ type IconName = keyof typeof paths
 const paths = {
   star: 'M12 3.5l2.6 5.28 5.83.85-4.22 4.11 1 5.81L12 16.8l-5.21 2.74 1-5.81-4.22-4.11 5.83-.85L12 3.5z',
   plus: 'M12 5v14M5 12h14',
+  calendar: 'M4 6a1 1 0 011-1h14a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V6z M4 10h16M8 3v4M16 3v4',
   back: 'M19 12H5M12 19l-7-7 7-7',
   forward: 'M5 12h14M12 5l7 7-7 7',
   pencil: 'M4 20h4L19 9a2.83 2.83 0 10-4-4L4 16v4z',

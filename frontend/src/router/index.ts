@@ -33,6 +33,11 @@ const router = createRouter({
       component: () => import('@/views/UploadView.vue'),
     },
     {
+      path: '/calendario',
+      name: 'calendar',
+      component: () => import('@/views/CalendarView.vue'),
+    },
+    {
       path: '/foto/:id(\\d+)',
       name: 'photo',
       component: () => import('@/views/PhotoView.vue'),

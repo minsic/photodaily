@@ -8,6 +8,7 @@ use App\Http\Requests\StorePhotoRequest;
 use App\Http\Requests\UpdatePhotoRequest;
 use App\Http\Resources\PhotoResource;
 use App\Models\Photo;
+use App\Services\PhotoCalendar;
 use App\Services\PhotoStorage;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -41,6 +42,19 @@ class PhotoController extends Controller
         return response()->json([
             'data' => Photo::publishedYearsFor($request->user()->family_id),
         ]);
+    }
+
+    /**
+     * Giorni dell'anno con e senza foto, per la vista Calendario.
+     * Senza anno: quello in corso nel fuso della famiglia.
+     */
+    public function calendar(Request $request, PhotoCalendar $calendar): JsonResponse
+    {
+        $family = $request->user()->family;
+        $year = $request->validate(['anno' => ['nullable', 'integer', 'between:1900,2100']])['anno']
+            ?? (int) substr($family->today(), 0, 4);
+
+        return response()->json(['data' => $calendar->forYear($family, (int) $year)]);
     }
 
     public function show(Photo $photo): PhotoResource

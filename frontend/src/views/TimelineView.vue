@@ -61,6 +61,14 @@ async function logout(): Promise<void> {
   <AppHeader>
     <template #right>
       <RouterLink
+        :to="{ name: 'calendar' }"
+        class="mr-1 flex size-9 items-center justify-center rounded-full border-2 border-line text-muted hover:text-ink"
+        aria-label="Calendario"
+        title="Calendario"
+      >
+        <AppIcon name="calendar" class="size-4" />
+      </RouterLink>
+      <RouterLink
         :to="{ name: 'upload' }"
         class="flex items-center gap-1 rounded-full bg-brick px-3 py-1.5 text-sm font-bold text-white"
       >

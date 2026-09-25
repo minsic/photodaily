@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { RouterLink, useRouter } from 'vue-router'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 
 import { photos as photosApi } from '@/api'
 import { ApiError, type ValidationErrors } from '@/api/client'
@@ -10,10 +10,15 @@ import AppIcon from '@/components/AppIcon.vue'
 import PhotoForm from '@/components/PhotoForm.vue'
 import { usePhotosStore } from '@/stores/photos'
 import { useToastsStore } from '@/stores/toasts'
+import { isIsoDate } from '@/utils/date'
 
 const store = usePhotosStore()
 const toasts = useToastsStore()
 const router = useRouter()
+const route = useRoute()
+
+/** Dal calendario si arriva con ?data=YYYY-MM-DD: il giorno vuoto che si vuole riempire. */
+const initialDate = isIsoDate(route.query.data) ? route.query.data : undefined
 
 const busy = ref(false)
 const errors = ref<ValidationErrors>({})
@@ -64,6 +69,7 @@ async function submit(payload: PhotoPayload, image: File | null): Promise<void> 
 
     <PhotoForm
       with-image
+      :initial-date="initialDate"
       :busy="busy"
       :errors="errors"
       submit-label="Carica"

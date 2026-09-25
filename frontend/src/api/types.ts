@@ -22,6 +22,7 @@ export interface SiteFamily {
   name: string
   slug: string
   access_mode: AccessMode
+  timezone: string
   /** Solo per i diari pubblici: per gli altri lo si chiede dopo l'accesso. */
   protagonist: Protagonist | null
 }
@@ -35,6 +36,8 @@ export interface Family {
   url: string
   access_mode: AccessMode
   protagonist: Protagonist | null
+  /** Fuso con cui si decide che giorno è "oggi" (es. Europe/Rome). */
+  timezone: string
   storage_used_mb: number
   photos_count?: number
   plan?: Plan
@@ -146,4 +149,19 @@ export interface PhotoPayload {
   didascalia: string | null
   data_speciale: boolean
   is_draft: boolean
+}
+
+/** GET /photos/calendario: i giorni di un anno con e senza foto. */
+export interface PhotoCalendar {
+  anno: number
+  /** Oggi nel fuso della famiglia. */
+  oggi: string
+  /** Primo e ultimo giorno che "dovrebbero" avere una foto (null se nessuno). */
+  inizio: string | null
+  fine: string | null
+  giorni: { data: string; foto_id: number; foto: number; speciale: boolean }[]
+  bozze: { data: string; foto_id: number }[]
+  vuoti: string[]
+  pieni: number
+  totali: number
 }

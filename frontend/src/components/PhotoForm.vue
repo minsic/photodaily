@@ -5,24 +5,28 @@ import type { ValidationErrors } from '@/api/client'
 import type { Photo, PhotoPayload } from '@/api/types'
 import AppIcon from '@/components/AppIcon.vue'
 import CaptionTextarea from '@/components/CaptionTextarea.vue'
-import { todayIso } from '@/utils/date'
+import { useFamilyToday } from '@/composables/useFamilyToday'
 
 const props = withDefaults(
   defineProps<{
     photo?: Photo | null
+    /** Data proposta per una foto nuova (dal calendario); altrimenti oggi, nel fuso della famiglia. */
+    initialDate?: string
     /** Sul caricamento si sceglie anche il file; in modifica l'immagine non si tocca. */
     withImage?: boolean
     busy?: boolean
     errors?: ValidationErrors
     submitLabel?: string
   }>(),
-  { photo: null, withImage: false, busy: false, errors: () => ({}), submitLabel: 'Salva' },
+  { photo: null, initialDate: undefined, withImage: false, busy: false, errors: () => ({}), submitLabel: 'Salva' },
 )
 
 const emit = defineEmits<{ submit: [payload: PhotoPayload, image: File | null] }>()
 
+const { today } = useFamilyToday()
+
 const form = reactive({
-  data: props.photo?.data ?? todayIso(),
+  data: props.photo?.data ?? props.initialDate ?? today(),
   didascalia: props.photo?.didascalia ?? '',
   data_speciale: props.photo?.data_speciale ?? false,
   is_draft: props.photo?.is_draft ?? false,

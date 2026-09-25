@@ -9,6 +9,7 @@ import type {
   Paginated,
   Photo,
   PhotoFilters,
+  PhotoCalendar,
   PhotoPayload,
   Protagonist,
   ReadAccess,
@@ -50,6 +51,12 @@ export const photos = {
 
   years() {
     return api<{ data: YearSummary[] }>('/photos/anni').then((response) => response.data)
+  },
+
+  calendar(anno?: number) {
+    return api<{ data: PhotoCalendar }>('/photos/calendario', { query: { anno } }).then(
+      (response) => response.data,
+    )
   },
 
   get(id: number) {
@@ -114,7 +121,11 @@ export const invites = {
 }
 
 export const family = {
-  update(payload: { protagonist_name?: string | null; protagonist_birthdate?: string | null }) {
+  update(payload: {
+    protagonist_name?: string | null
+    protagonist_birthdate?: string | null
+    timezone?: string
+  }) {
     return api<{ data: Family }>('/family', { method: 'PATCH', body: payload }).then(
       (response) => response.data,
     )

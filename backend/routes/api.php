@@ -52,5 +52,6 @@ Route::middleware(['auth:sanctum', EnsureHostFamilyMember::class])->group(functi
     Route::patch('/family/access-mode', [FamilyAccessController::class, 'update']);
 
     Route::get('/photos/anni', [PhotoController::class, 'years']);
+    Route::get('/photos/calendario', [PhotoController::class, 'calendar']);
     Route::apiResource('photos', PhotoController::class)->where(['photo' => '[0-9]+']);
 });

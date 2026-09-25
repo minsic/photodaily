@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\AccessMode;
 use App\Exceptions\PlanLimitExceededException;
+use Carbon\CarbonImmutable;
 use Database\Factories\FamilyFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -14,7 +15,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Hash;
 use InvalidArgumentException;
 
-#[Fillable(['name', 'slug', 'custom_domain', 'plan_id', 'protagonist_name', 'protagonist_birthdate'])]
+#[Fillable(['name', 'slug', 'custom_domain', 'plan_id', 'protagonist_name', 'protagonist_birthdate', 'timezone'])]
 #[Hidden(['access_password_hash'])]
 class Family extends Model
 {
@@ -203,11 +204,24 @@ class Family extends Model
     }
 
     /**
-     * Data di oggi (Y-m-d) per la famiglia.
+     * Fuso orario della famiglia: decide che giorno è "oggi" per il calendario,
+     * per le date delle foto e per l'orario dei promemoria.
      */
+    public function timezone(): string
+    {
+        return $this->timezone ?: config('photodaily.default_timezone');
+    }
+
+    /** Adesso, nel fuso della famiglia. */
+    public function now(): CarbonImmutable
+    {
+        return CarbonImmutable::now($this->timezone());
+    }
+
+    /** Data di oggi (Y-m-d) nel fuso della famiglia. */
     public function today(): string
     {
-        return now(config('photodaily.default_timezone'))->toDateString();
+        return $this->now()->toDateString();
     }
 
     public function inviteUrl(string $token): string

@@ -26,6 +26,7 @@ class FamilyResource extends JsonResource
             'url' => $this->url(),
             'access_mode' => $this->access_mode,
             'protagonist' => $this->protagonist(),
+            'timezone' => $this->timezone(),
             'storage_used_mb' => $this->storage_used_mb,
             'photos_count' => $this->whenCounted('photos'),
             'plan' => $this->whenLoaded('plan', fn () => [

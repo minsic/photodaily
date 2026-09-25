@@ -42,12 +42,23 @@ class StorePhotoRequest extends FormRequest
     {
         return [
             'image' => ['required', 'file', 'image', 'mimes:jpg,jpeg,png,webp', 'max:'.config('photodaily.max_upload_kb')],
-            'data' => ['required', 'date_format:Y-m-d'],
+            'data' => ['required', 'date_format:Y-m-d', 'before_or_equal:'.$this->user()->family->today()],
             // Il tetto in caratteri sta in CaptionLength: qui resta solo una
             // cintura di sicurezza sul peso dell'HTML sanificato.
             'didascalia' => ['nullable', 'string', 'max:20000', new CaptionLength],
             'data_speciale' => ['sometimes', 'boolean'],
             'is_draft' => ['sometimes', 'boolean'],
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            // "Oggi" è quello della famiglia (families.timezone), non quello del server.
+            'data.before_or_equal' => 'La data non può essere nel futuro.',
         ];
     }
 }

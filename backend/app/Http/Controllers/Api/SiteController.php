@@ -30,6 +30,7 @@ class SiteController extends Controller
                     'name' => $family->name,
                     'slug' => $family->slug,
                     'access_mode' => $family->access_mode,
+                    'timezone' => $family->timezone(),
                     // Chiunque può chiedere /api/site conoscendo l'indirizzo: nome e
                     // data di nascita di un bambino si mostrano solo se il diario è
                     // pubblico. Con la password arrivano dopo lo sblocco

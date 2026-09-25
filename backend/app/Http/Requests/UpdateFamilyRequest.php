@@ -26,6 +26,7 @@ class UpdateFamilyRequest extends FormRequest
         return [
             'protagonist_name' => ['sometimes', 'nullable', 'string', 'max:60'],
             'protagonist_birthdate' => ['sometimes', 'nullable', 'date_format:Y-m-d', 'before_or_equal:'.$this->user()->family->today()],
+            'timezone' => ['sometimes', 'required', 'string', 'timezone:all'],
         ];
     }
 
@@ -38,6 +39,7 @@ class UpdateFamilyRequest extends FormRequest
             'protagonist_name.max' => 'Il nome può avere al massimo 60 caratteri.',
             'protagonist_birthdate.date_format' => 'La data di nascita non è valida.',
             'protagonist_birthdate.before_or_equal' => 'La data di nascita non può essere nel futuro.',
+            'timezone.timezone' => 'Fuso orario non riconosciuto.',
         ];
     }
 

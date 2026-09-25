@@ -41,10 +41,21 @@ class UpdatePhotoRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'data' => ['sometimes', 'required', 'date_format:Y-m-d'],
+            'data' => ['sometimes', 'required', 'date_format:Y-m-d', 'before_or_equal:'.$this->user()->family->today()],
             'didascalia' => ['sometimes', 'nullable', 'string', 'max:20000', new CaptionLength],
             'data_speciale' => ['sometimes', 'boolean'],
             'is_draft' => ['sometimes', 'boolean'],
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            // "Oggi" è quello della famiglia (families.timezone), non quello del server.
+            'data.before_or_equal' => 'La data non può essere nel futuro.',
         ];
     }
 }

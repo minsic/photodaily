@@ -45,12 +45,35 @@ export function yearOf(iso: string): number {
   return parseDate(iso).getFullYear()
 }
 
-export function todayIso(): string {
-  const now = new Date()
+/** Fuso predefinito delle famiglie (families.timezone). */
+export const DEFAULT_TIMEZONE = 'Europe/Rome'
 
-  return [
-    now.getFullYear(),
-    String(now.getMonth() + 1).padStart(2, '0'),
-    String(now.getDate()).padStart(2, '0'),
-  ].join('-')
+/**
+ * Data di oggi (YYYY-MM-DD) in un fuso orario: quello della famiglia, non
+ * quello del telefono. Il formato en-CA è già anno-mese-giorno.
+ */
+export function todayIso(timeZone: string = DEFAULT_TIMEZONE, now: Date = new Date()): string {
+  try {
+    return new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(now)
+  } catch {
+    // Fuso non riconosciuto dal browser: meglio il predefinito che un errore.
+    return new Intl.DateTimeFormat('en-CA', {
+      timeZone: DEFAULT_TIMEZONE,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(now)
+  }
+}
+
+/** Una stringa è una data YYYY-MM-DD valida? */
+export function isIsoDate(value: unknown): value is string {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return false
+  }
+
+  const [year, month, day] = value.split('-').map(Number)
+  const date = new Date(Date.UTC(year, month - 1, day))
+
+  return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day
 }
