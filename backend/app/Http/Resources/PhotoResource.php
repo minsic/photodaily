@@ -58,12 +58,17 @@ class PhotoResource extends JsonResource
             'is_draft' => $this->is_draft,
             // URL firmati a scadenza: il bucket R2 resta privato.
             'thumbnail_url' => app(PhotoStorage::class)->thumbnailUrl($this->resource),
+            // Versione per la timeline (lato lungo 1400px); null finché non è generata.
+            'medium_url' => app(PhotoStorage::class)->mediumUrl($this->resource),
             $this->mergeWhen(
                 $this->withOriginal,
                 fn () => ['image_url' => app(PhotoStorage::class)->temporaryUrl($this->resource)],
             ),
             'width' => $this->width,
             'height' => $this->height,
+            // Dimensioni della versione media, già ruotata: le proporzioni giuste da mostrare.
+            'medium_width' => $this->medium_width,
+            'medium_height' => $this->medium_height,
             // Sulle rotte pubbliche non si espone chi ha caricato la foto.
             'uploaded_by' => $this->when($request->user() !== null, fn () => $this->uploaded_by),
             'created_at' => $this->created_at,

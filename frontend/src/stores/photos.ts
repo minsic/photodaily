@@ -117,6 +117,7 @@ export const usePhotosStore = defineStore('photos', () => {
       items.value[index] = {
         ...items.value[index],
         thumbnail_url: fresh.thumbnail_url,
+        medium_url: fresh.medium_url,
         image_url: fresh.image_url,
       }
     }

@@ -50,12 +50,18 @@ export interface Photo {
   data_speciale: boolean
   didascalia: string | null
   is_draft: boolean
-  /** Miniatura (lato lungo 400px): sempre presente, è l'unica immagine negli elenchi. */
+  /** Miniatura (lato lungo 400px): sempre presente. */
   thumbnail_url: string
+  /** Versione per la timeline (lato lungo 1400px): null finché il server non l'ha generata. */
+  medium_url: string | null
   /** Immagine a piena risoluzione: solo sul dettaglio. URL firmato, scade dopo un'ora. */
   image_url?: string
+  /** Dimensioni dell'originale, come salvato (senza tener conto della rotazione EXIF). */
   width: number | null
   height: number | null
+  /** Dimensioni della versione media, già ruotata: le proporzioni giuste da mostrare. */
+  medium_width: number | null
+  medium_height: number | null
   uploaded_by?: number | null
   created_at: string
   updated_at: string

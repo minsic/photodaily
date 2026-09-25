@@ -8,37 +8,59 @@ use Illuminate\Support\Facades\Log;
 use Throwable;
 
 /**
- * Genera le miniature usando la libreria immagini di Laravel (driver GD).
- * WebP quando è supportato, altrimenti JPEG.
+ * Genera le versioni ridotte delle foto usando la libreria immagini di Laravel
+ * (driver GD): la miniatura e la versione media per la timeline.
+ * WebP quando è supportato, altrimenti JPEG. Le foto non vengono mai ingrandite.
  */
 class ThumbnailMaker
 {
     /** Lato lungo della miniatura, in pixel. */
     public const MAX_SIDE = 400;
 
+    /** Lato lungo della versione media: la colonna della timeline è larga al massimo 700px, 1400 basta per gli schermi retina. */
+    public const MEDIUM_SIDE = 1400;
+
     public const QUALITY = 80;
 
     /**
-     * @return array{bytes: string, extension: string, width: int, height: int}|null
+     * Versione media e miniatura insieme. L'originale si decodifica una volta
+     * sola: la miniatura si ricava dalla versione media, già orientata.
+     *
+     * @return array{medium: array{bytes: string, extension: string, width: int, height: int}|null, thumbnail: array{bytes: string, extension: string, width: int, height: int}|null}
      */
-    public function fromPath(string $path): ?array
+    public function variantsFromPath(string $path): array
     {
-        return $this->encode(fn () => Image::fromPath($path));
+        $medium = $this->fromPath($path, self::MEDIUM_SIDE);
+
+        return [
+            'medium' => $medium,
+            'thumbnail' => $medium === null
+                ? null
+                : $this->encode(fn () => Image::fromBytes($medium['bytes']), self::MAX_SIDE),
+        ];
     }
 
     /**
      * @return array{bytes: string, extension: string, width: int, height: int}|null
      */
-    public function fromDisk(string $path, string $disk): ?array
+    public function fromPath(string $path, int $maxSide = self::MAX_SIDE): ?array
     {
-        return $this->encode(fn () => Image::fromStorage($path, $disk));
+        return $this->encode(fn () => Image::fromPath($path), $maxSide);
+    }
+
+    /**
+     * @return array{bytes: string, extension: string, width: int, height: int}|null
+     */
+    public function fromDisk(string $path, string $disk, int $maxSide = self::MAX_SIDE): ?array
+    {
+        return $this->encode(fn () => Image::fromStorage($path, $disk), $maxSide);
     }
 
     /**
      * @param  Closure(): \Illuminate\Image\Image  $source
      * @return array{bytes: string, extension: string, width: int, height: int}|null
      */
-    private function encode(Closure $source): ?array
+    private function encode(Closure $source, int $maxSide): ?array
     {
         // GD decodifica l'immagine in una bitmap non compressa: una foto da
         // 4624x3468 occupa circa 64 MB, ben oltre il limite abituale di PHP.
@@ -46,7 +68,7 @@ class ThumbnailMaker
         ini_set('memory_limit', config('photodaily.thumbnail_memory_limit'));
 
         try {
-            return $this->run($source);
+            return $this->run($source, $maxSide);
         } finally {
             // Prima si liberano le bitmap: restano nei cicli di riferimenti
             // finché il GC non passa, e senza questa raccolta elaborando molte
@@ -64,7 +86,7 @@ class ThumbnailMaker
      * @param  Closure(): \Illuminate\Image\Image  $source
      * @return array{bytes: string, extension: string, width: int, height: int}|null
      */
-    private function run(Closure $source): ?array
+    private function run(Closure $source, int $maxSide): ?array
     {
         foreach (['webp', 'jpg'] as $format) {
             try {
@@ -72,7 +94,7 @@ class ThumbnailMaker
                     // orient() applica la rotazione EXIF: le foto da telefono
                     // altrimenti escono coricate.
                     ->orient()
-                    ->scale(self::MAX_SIDE, self::MAX_SIDE)
+                    ->scale($maxSide, $maxSide)
                     ->optimize($format, self::QUALITY);
 
                 return [
@@ -82,7 +104,7 @@ class ThumbnailMaker
                     'height' => $image->height(),
                 ];
             } catch (Throwable $e) {
-                Log::warning("Miniatura {$format} non generata: {$e->getMessage()}");
+                Log::warning("Versione ridotta {$format} ({$maxSide}px) non generata: {$e->getMessage()}");
             }
         }
 

@@ -22,9 +22,49 @@ const photos = usePhotosStore()
 const loaded = ref(false)
 const retried = ref(false)
 
+/** Lato lungo della miniatura generata dal server (ThumbnailMaker::MAX_SIDE). */
+const THUMBNAIL_SIDE = 400
+
+/**
+ * Larghezza della foto nella colonna: 700px da 768px di viewport in su
+ * (max-w-3xl meno padding e rientro della linea del tempo), altrimenti
+ * lo schermo meno quei margini.
+ */
+const SIZES = '(min-width: 768px) 700px, (min-width: 640px) calc(100vw - 68px), calc(100vw - 60px)'
+
+/** Dimensioni da mostrare: quelle della versione media sono già ruotate secondo l'EXIF. */
+const display = computed(() => {
+  const { medium_width, medium_height, width, height } = props.photo
+
+  if (medium_width && medium_height) {
+    return { width: medium_width, height: medium_height }
+  }
+
+  return width && height ? { width, height } : null
+})
+
 const ratio = computed(() =>
-  props.photo.width && props.photo.height ? `${props.photo.width} / ${props.photo.height}` : '4 / 5',
+  display.value ? `${display.value.width} / ${display.value.height}` : '4 / 5',
 )
+
+/**
+ * Miniatura e versione media come candidati: il browser sceglie in base a
+ * `sizes` e alla densità dello schermo. Senza versione media resta la sola
+ * miniatura, mai l'originale.
+ */
+const srcset = computed(() => {
+  const { medium_url, medium_width, medium_height, thumbnail_url } = props.photo
+
+  if (!medium_url || !medium_width || !medium_height) {
+    return undefined
+  }
+
+  const thumbnailWidth = Math.round(
+    medium_width * Math.min(1, THUMBNAIL_SIDE / Math.max(medium_width, medium_height)),
+  )
+
+  return `${thumbnail_url} ${thumbnailWidth}w, ${medium_url} ${medium_width}w`
+})
 
 const captionPreview = computed(() => captionWithoutLinks(props.photo.didascalia))
 
@@ -69,9 +109,11 @@ async function onError(): Promise<void> {
       <figure class="mt-2 overflow-hidden rounded-2xl bg-card card-shadow">
         <img
           :src="photo.thumbnail_url"
+          :srcset="srcset"
+          :sizes="srcset ? SIZES : undefined"
           :alt="altText"
-          :width="photo.width ?? undefined"
-          :height="photo.height ?? undefined"
+          :width="display?.width"
+          :height="display?.height"
           :style="{ aspectRatio: ratio }"
           class="w-full object-cover fade-in-img"
           :data-loaded="loaded"

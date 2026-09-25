@@ -15,7 +15,7 @@ use Illuminate\Support\Collection;
  * valore salvato è identico su SQLite, MySQL e PostgreSQL e confrontabile
  * come stringa per la navigazione precedente/successiva.
  */
-#[Fillable(['sanity_id', 'image_path', 'thumbnail_path', 'size_bytes', 'thumbnail_bytes', 'width', 'height', 'data', 'data_speciale', 'didascalia', 'uploaded_by', 'is_draft'])]
+#[Fillable(['sanity_id', 'image_path', 'thumbnail_path', 'medium_path', 'size_bytes', 'thumbnail_bytes', 'medium_bytes', 'width', 'height', 'medium_width', 'medium_height', 'data', 'data_speciale', 'didascalia', 'uploaded_by', 'is_draft'])]
 class Photo extends Model
 {
     /** @use HasFactory<PhotoFactory> */
@@ -116,8 +116,11 @@ class Photo extends Model
         return [
             'size_bytes' => 'integer',
             'thumbnail_bytes' => 'integer',
+            'medium_bytes' => 'integer',
             'width' => 'integer',
             'height' => 'integer',
+            'medium_width' => 'integer',
+            'medium_height' => 'integer',
             'data_speciale' => 'boolean',
             'is_draft' => 'boolean',
         ];

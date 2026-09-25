@@ -96,6 +96,11 @@ php artisan photos:import giopellino /percorso/export
 php artisan photos:generate-thumbnails giopellino --limit=3   # prova
 php artisan photos:generate-thumbnails                        # tutte le famiglie
 php artisan photos:generate-thumbnails giopellino --force     # rigenera anche quelle presenti
+
+# Genera la versione media (lato lungo 1400px, WebP) usata dalla timeline
+php artisan photos:generate-medium --family=giopellino --dry-run   # quante foto elaborerebbe
+php artisan photos:generate-medium --family=giopellino             # solo quelle che non l'hanno
+php artisan photos:generate-medium --force                          # rigenera tutto, tutte le famiglie
 ```
 
 `photos:generate-thumbnails` salta le foto che hanno già una miniatura, quindi si può rilanciare dopo un'interruzione senza creare doppioni. Elenca le foto che non è riuscito a elaborare e in quel caso termina con exit code 1.

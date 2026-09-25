@@ -102,7 +102,7 @@ class Family extends Model
     public function storageUsedBytes(): int
     {
         return (int) $this->photos()
-            ->selectRaw('COALESCE(SUM(size_bytes), 0) + COALESCE(SUM(thumbnail_bytes), 0) as bytes')
+            ->selectRaw('COALESCE(SUM(size_bytes), 0) + COALESCE(SUM(thumbnail_bytes), 0) + COALESCE(SUM(medium_bytes), 0) as bytes')
             ->value('bytes');
     }
 

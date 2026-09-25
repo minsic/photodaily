@@ -150,7 +150,7 @@ class ThumbnailsTest extends TestCase
         ])->assertCreated();
 
         $photo = Photo::sole();
-        $expected = round(($photo->size_bytes + $photo->thumbnail_bytes) / 1024 / 1024, 2);
+        $expected = round(($photo->size_bytes + $photo->thumbnail_bytes + $photo->medium_bytes) / 1024 / 1024, 2);
 
         $this->assertSame($expected, $this->family->fresh()->storage_used_mb);
     }
