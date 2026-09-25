@@ -185,8 +185,8 @@ install -d -o caddy -g caddy /var/log/caddy
 sed "s|__ACME_EMAIL__|$ACME_EMAIL|" "$DEPLOY_DIR/Caddyfile" > /etc/caddy/Caddyfile
 # Come utente caddy: da root validate creerebbe il file di log intestato a root,
 # e poi Caddy non riuscirebbe ad aprirlo.
-sudo -u caddy caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
 chown -R caddy:caddy /var/log/caddy
+sudo -u caddy caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
 systemctl enable caddy
 # Restart, non reload: Caddy deve ripartire col gruppo photodaily appena aggiunto.
 systemctl restart caddy
