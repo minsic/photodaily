@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { ApiError } from '@/api/client'
+import AppLogo from '@/components/logo/AppLogo.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useSiteStore } from '@/stores/site'
 
@@ -40,8 +41,8 @@ async function onSubmit(): Promise<void> {
 <template>
   <main class="flex min-h-dvh flex-col items-center justify-center px-4 py-10">
     <div class="w-full max-w-sm">
-      <h1 class="text-center text-3xl font-bold tracking-tight">
-        Photo<span class="text-brick">Daily</span>
+      <h1 class="flex justify-center text-ink">
+        <AppLogo variant="verticale" class="h-28" />
       </h1>
       <p v-if="site.family" class="mt-2 text-center text-sm text-muted">
         Il diario di <strong class="text-ink">{{ site.family.name }}</strong>

@@ -5,6 +5,7 @@ import AppHeader from '@/components/AppHeader.vue'
 import AppIcon from '@/components/AppIcon.vue'
 import AppSpinner from '@/components/AppSpinner.vue'
 import FilterBar from '@/components/FilterBar.vue'
+import AppLogo from '@/components/logo/AppLogo.vue'
 import TimelineItem from '@/components/TimelineItem.vue'
 import { useInfiniteScroll } from '@/composables/useInfiniteScroll'
 import { useRefreshWhenVisible } from '@/composables/useRefreshWhenVisible'
@@ -37,9 +38,7 @@ watch(() => props.slug, (slug) => diary.open(slug))
 <template>
   <AppHeader>
     <template #left>
-      <span class="text-lg font-bold tracking-tight">
-        Photo<span class="text-brick">Daily</span>
-      </span>
+      <AppLogo class="h-8 text-ink" />
     </template>
     <template #right>
       <span class="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-muted">

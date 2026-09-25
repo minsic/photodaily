@@ -6,6 +6,7 @@ import { invites as invitesApi } from '@/api'
 import { ApiError, type ValidationErrors } from '@/api/client'
 import type { InvitePreview } from '@/api/types'
 import AppSpinner from '@/components/AppSpinner.vue'
+import AppLogo from '@/components/logo/AppLogo.vue'
 import { useNoIndex } from '@/composables/useNoIndex'
 import { useAuthStore } from '@/stores/auth'
 import { useToastsStore } from '@/stores/toasts'
@@ -76,8 +77,8 @@ function fieldError(field: string): string | undefined {
 <template>
   <main class="flex min-h-dvh flex-col items-center justify-center px-4 py-10">
     <div class="w-full max-w-sm">
-      <h1 class="text-center text-3xl font-bold tracking-tight">
-        Photo<span class="text-brick">Daily</span>
+      <h1 class="flex justify-center text-ink">
+        <AppLogo variant="verticale" class="h-28" />
       </h1>
 
       <AppSpinner v-if="loading" label="Controllo l'invito…" />
