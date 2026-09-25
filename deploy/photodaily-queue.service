@@ -1,0 +1,19 @@
+# Worker della coda Laravel (email degli inviti e lavori in background).
+# Installato da provision.sh in /etc/systemd/system/.
+# Dopo un deploy, `php artisan queue:restart` lo fa uscire e systemd lo riavvia
+# sulla nuova release.
+
+[Unit]
+Description=PhotoDaily queue worker
+After=network.target mysql.service
+
+[Service]
+User=photodaily
+Group=photodaily
+WorkingDirectory=/var/www/photodaily/current/backend
+ExecStart=/usr/bin/php artisan queue:work --sleep=3 --tries=3 --max-time=3600
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

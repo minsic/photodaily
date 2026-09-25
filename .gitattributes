@@ -1,0 +1,2 @@
+# Gli script del server devono restare con fine riga Unix anche da Windows.
+deploy/** text eol=lf

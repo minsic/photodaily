@@ -1,0 +1,67 @@
+# Caddy per PhotoDaily: installato da provision.sh in /etc/caddy/Caddyfile.
+#
+# Un solo sito per tutti gli host: photodaily.app, <slug>.photodaily.app e
+# i domini propri delle famiglie. I certificati si chiedono al primo accesso
+# (on-demand TLS), ma solo per gli host che il backend riconosce.
+
+{
+	# Sostituito da provision.sh con ACME_EMAIL.
+	email __ACME_EMAIL__
+
+	on_demand_tls {
+		ask http://127.0.0.1:8081/api/tls/ask
+	}
+}
+
+(photodaily_app) {
+	root * /var/www/photodaily/current/backend/public
+	php_fastcgi unix//run/php/photodaily.sock
+}
+
+# Solo per la domanda di Caddy a se stesso: raggiungibile solo in locale.
+http://127.0.0.1:8081 {
+	bind 127.0.0.1
+	import photodaily_app
+}
+
+https:// {
+	tls {
+		on_demand
+	}
+
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		-Server
+	}
+
+	# API Laravel sullo stesso host del frontend.
+	handle /api/* {
+		import photodaily_app
+	}
+
+	# Frontend Vue: file statici, e index.html per le rotte della SPA.
+	handle {
+		root * /var/www/photodaily/current/frontend/dist
+
+		# I file in assets/ hanno l'hash nel nome: si possono tenere per sempre.
+		# Tutto il resto (index.html per ogni rotta, sw.js, manifest, icone)
+		# va ricontrollato a ogni visita, altrimenti un deploy non arriva.
+		@hashed path /assets/*
+		header @hashed Cache-Control "public, max-age=31536000, immutable"
+		@unhashed not path /assets/*
+		header @unhashed Cache-Control "no-cache"
+
+		try_files {path} /index.html
+		file_server
+	}
+
+	log {
+		output file /var/log/caddy/photodaily.log {
+			roll_keep 7
+		}
+	}
+}
