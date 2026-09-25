@@ -3,25 +3,39 @@
 namespace App\Services;
 
 use App\Exceptions\PlanLimitExceededException;
+use App\Jobs\GeneratePhotoVariants;
 use App\Models\Family;
 use App\Models\Photo;
 use App\Models\User;
+use App\Support\ImageMetadata;
 use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Filesystem\FilesystemManager;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Image;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\File\File;
 use Throwable;
 
 /**
- * Unico punto di scrittura delle immagini: carica su R2 originale, versione
- * media e miniatura,
- * applica i limiti del piano e tiene aggiornato families.storage_used_mb.
- * Usato sia dall'API che dal comando di import, così nessun percorso può
- * aggirare i limiti.
+ * Unico punto di scrittura delle immagini: carica su R2 l'originale (senza
+ * dati di posizione), applica i limiti del piano e tiene aggiornato
+ * families.storage_used_mb. Versione media e miniatura le genera dopo il job
+ * GeneratePhotoVariants, così una raffica di upload non tiene occupati i
+ * processi web. Usato sia dall'API che dal comando di import, così nessun
+ * percorso può aggirare i limiti.
  */
 class PhotoStorage
 {
+    /** Colonne delle versioni ridotte, finché il job non le genera. */
+    private const NO_VARIANTS = [
+        'thumbnail_path' => null,
+        'thumbnail_bytes' => 0,
+        'medium_path' => null,
+        'medium_bytes' => 0,
+        'medium_width' => null,
+        'medium_height' => null,
+    ];
+
     public function __construct(
         private readonly FilesystemManager $filesystem,
         private readonly ThumbnailMaker $thumbnails,
@@ -44,39 +58,49 @@ class PhotoStorage
      */
     public function create(Family $family, File $file, array $attributes, ?User $uploader = null, ?string $filename = null): Photo
     {
-        $bytes = $file->getSize();
-
-        // Controllo anticipato per non caricare su R2 un file che verrebbe rifiutato.
-        $family->ensureCanStore($bytes);
-
-        $path = $this->upload($family, $file, $filename);
-        $variants = $this->uploadVariants($family, $path, $file);
+        [$file, $temporary] = $this->withoutLocation($file);
 
         try {
-            return DB::transaction(function () use ($family, $file, $attributes, $uploader, $path, $variants, $bytes) {
-                // Il lock sulla famiglia serializza gli upload concorrenti: il controllo
-                // definitivo dei limiti avviene qui, dentro la transazione.
-                $family = Family::query()->lockForUpdate()->findOrFail($family->id);
-                $family->ensureCanStore($bytes);
+            $bytes = $file->getSize();
 
-                $photo = $family->photos()->create([
-                    ...$attributes,
-                    ...$this->dimensions($file),
-                    ...$variants['attributes'],
-                    'image_path' => $path,
-                    'size_bytes' => $bytes,
-                    'uploaded_by' => $uploader?->id,
-                ]);
+            // Controllo anticipato per non caricare su R2 un file che verrebbe rifiutato.
+            $family->ensureCanStore($bytes);
 
-                $family->refreshStorageUsage();
+            $path = $this->upload($family, $file, $filename);
 
-                return $photo;
-            });
-        } catch (Throwable $e) {
-            $this->disk()->delete([$path, ...$variants['paths']]);
+            try {
+                $photo = DB::transaction(function () use ($family, $file, $attributes, $uploader, $path, $bytes) {
+                    // Il lock sulla famiglia serializza gli upload concorrenti: il controllo
+                    // definitivo dei limiti avviene qui, dentro la transazione.
+                    $family = Family::query()->lockForUpdate()->findOrFail($family->id);
+                    $family->ensureCanStore($bytes);
 
-            throw $e;
+                    $photo = $family->photos()->create([
+                        ...$attributes,
+                        ...$this->dimensions($file),
+                        'image_path' => $path,
+                        'size_bytes' => $bytes,
+                        'uploaded_by' => $uploader?->id,
+                    ]);
+
+                    $family->refreshStorageUsage();
+
+                    return $photo;
+                });
+            } catch (Throwable $e) {
+                $this->disk()->delete($path);
+
+                throw $e;
+            }
+        } finally {
+            if ($temporary !== null) {
+                @unlink($temporary);
+            }
         }
+
+        GeneratePhotoVariants::dispatch($photo);
+
+        return $photo;
     }
 
     /**
@@ -87,45 +111,100 @@ class PhotoStorage
      */
     public function replaceImage(Photo $photo, File $file, ?string $filename = null): Photo
     {
-        $bytes = $file->getSize();
-        $delta = max(0, $bytes - $photo->size_bytes);
-        $family = $photo->family;
-
-        $family->ensureCanStore($delta, photos: 0);
-
-        $previous = [$photo->image_path, $photo->thumbnail_path, $photo->medium_path];
-        $path = $this->upload($family, $file, $filename);
-        $variants = $this->uploadVariants($family, $path, $file);
+        [$file, $temporary] = $this->withoutLocation($file);
 
         try {
-            DB::transaction(function () use ($photo, $family, $file, $path, $variants, $bytes, $delta) {
-                $family = Family::query()->lockForUpdate()->findOrFail($family->id);
-                $family->ensureCanStore($delta, photos: 0);
+            $bytes = $file->getSize();
+            $delta = max(0, $bytes - $photo->size_bytes);
+            $family = $photo->family;
 
-                $photo->update([
-                    ...$this->dimensions($file),
-                    ...$variants['attributes'],
-                    'image_path' => $path,
-                    'size_bytes' => $bytes,
-                ]);
+            $family->ensureCanStore($delta, photos: 0);
 
-                $family->refreshStorageUsage();
-            });
-        } catch (Throwable $e) {
-            if (! in_array($path, $previous, true)) {
-                $this->disk()->delete($path);
+            $previous = [$photo->image_path, $photo->thumbnail_path, $photo->medium_path];
+            $path = $this->upload($family, $file, $filename);
+
+            try {
+                DB::transaction(function () use ($photo, $family, $file, $path, $bytes, $delta) {
+                    $family = Family::query()->lockForUpdate()->findOrFail($family->id);
+                    $family->ensureCanStore($delta, photos: 0);
+
+                    // Le versioni ridotte vecchie non valgono più: le rifà il job.
+                    $photo->update([
+                        ...$this->dimensions($file),
+                        ...self::NO_VARIANTS,
+                        'image_path' => $path,
+                        'size_bytes' => $bytes,
+                    ]);
+
+                    $family->refreshStorageUsage();
+                });
+            } catch (Throwable $e) {
+                if (! in_array($path, $previous, true)) {
+                    $this->disk()->delete($path);
+                }
+
+                throw $e;
             }
-
-            throw $e;
+        } finally {
+            if ($temporary !== null) {
+                @unlink($temporary);
+            }
         }
 
         foreach ($previous as $old) {
-            if ($old !== null && $old !== $path && ! in_array($old, $variants['paths'], true)) {
+            if ($old !== null && $old !== $path) {
                 $this->deleteIfUnused($old);
             }
         }
 
+        GeneratePhotoVariants::dispatch($photo);
+
         return $photo;
+    }
+
+    /**
+     * Genera versione media e miniatura leggendo l'originale da R2 (lo fa il
+     * job GeneratePhotoVariants dopo ogni upload). False se l'immagine non è
+     * elaborabile: la foto resta visibile, con l'originale al posto della miniatura.
+     */
+    public function generateVariants(Photo $photo): bool
+    {
+        $source = tempnam(sys_get_temp_dir(), 'photodaily-originale');
+
+        try {
+            file_put_contents($source, $this->disk()->get($photo->image_path));
+
+            $variants = $this->thumbnails->variantsFromPath($source);
+        } finally {
+            @unlink($source);
+        }
+
+        if ($variants['medium'] === null || $variants['thumbnail'] === null) {
+            return false;
+        }
+
+        $previous = [$photo->thumbnail_path, $photo->medium_path];
+        $medium = $this->uploadVariant($photo->family, $photo->image_path, $variants['medium'], 'medium');
+        $thumbnail = $this->uploadVariant($photo->family, $photo->image_path, $variants['thumbnail'], 'thumbs');
+
+        $photo->forceFill([
+            'thumbnail_path' => $thumbnail['path'],
+            'thumbnail_bytes' => $thumbnail['bytes'],
+            'medium_path' => $medium['path'],
+            'medium_bytes' => $medium['bytes'],
+            'medium_width' => $variants['medium']['width'],
+            'medium_height' => $variants['medium']['height'],
+        ])->save();
+
+        foreach ($previous as $old) {
+            if ($old !== null && $old !== $thumbnail['path'] && $old !== $medium['path']) {
+                $this->deleteIfUnused($old);
+            }
+        }
+
+        $photo->family->refreshStorageUsage();
+
+        return true;
     }
 
     /**
@@ -259,29 +338,33 @@ class PhotoStorage
     }
 
     /**
-     * Genera e carica versione media e miniatura di un file appena caricato.
-     * Se l'immagine non è elaborabile le colonne restano vuote: la foto si
-     * salva comunque e le versioni si possono rigenerare dopo.
+     * Copia del file senza dati di posizione (GPS dell'EXIF, XMP). Si lavora
+     * sui byte senza ricomprimere; solo se il file non si lascia leggere lo si
+     * ricodifica, che toglie comunque tutti i metadati.
      *
-     * @return array{attributes: array<string, mixed>, paths: list<string>}
+     * @return array{0: File, 1: string|null} il file da caricare e l'eventuale file temporaneo da cancellare
      */
-    private function uploadVariants(Family $family, string $imagePath, File $file): array
+    private function withoutLocation(File $file): array
     {
-        $variants = $this->thumbnails->variantsFromPath($file->getPathname());
-        $medium = $this->uploadVariant($family, $imagePath, $variants['medium'], 'medium');
-        $thumbnail = $this->uploadVariant($family, $imagePath, $variants['thumbnail'], 'thumbs');
+        $original = (string) file_get_contents($file->getPathname());
+        $clean = ImageMetadata::withoutLocation($original);
 
-        return [
-            'attributes' => [
-                'thumbnail_path' => $thumbnail['path'] ?? null,
-                'thumbnail_bytes' => $thumbnail['bytes'] ?? 0,
-                'medium_path' => $medium['path'] ?? null,
-                'medium_bytes' => $medium['bytes'] ?? 0,
-                'medium_width' => $variants['medium']['width'] ?? null,
-                'medium_height' => $variants['medium']['height'] ?? null,
-            ],
-            'paths' => array_values(array_filter([$thumbnail['path'] ?? null, $medium['path'] ?? null])),
-        ];
+        if ($clean === $original) {
+            return [$file, null];
+        }
+
+        if ($clean === null) {
+            $extension = strtolower($file->guessExtension() ?? 'jpg');
+            $clean = Image::fromPath($file->getPathname())
+                ->orient()
+                ->optimize($extension === 'jpeg' ? 'jpg' : $extension, 92)
+                ->toBytes();
+        }
+
+        $temporary = tempnam(sys_get_temp_dir(), 'photodaily-pulita');
+        file_put_contents($temporary, $clean);
+
+        return [new File($temporary), $temporary];
     }
 
     /**

@@ -36,6 +36,11 @@ export default defineConfig({
       },
     }),
   ],
+  optimizeDeps: {
+    // Caricato con import() solo nel recupero dei giorni: dichiararlo evita che
+    // Vite lo scopra a pagina aperta e debba ricaricarla.
+    include: ['exifr/dist/lite.esm.mjs'],
+  },
   server: {
     // Come in produzione, l'API sta sullo stesso host del frontend (/api).
     // Herd distingue i siti dall'host, quindi la richiesta arriva come

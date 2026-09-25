@@ -87,6 +87,11 @@ export const usePhotosStore = defineStore('photos', () => {
     }
   }
 
+  /** Foto aggiunte da un'altra pagina (recupero dei giorni): al ritorno la timeline si ricarica. */
+  function invalidate(): void {
+    loadedKey.value = null
+  }
+
   function setAnno(value: number | null): void {
     anno.value = value
   }
@@ -195,6 +200,7 @@ export const usePhotosStore = defineStore('photos', () => {
     loadYears,
     load,
     loadMore,
+    invalidate,
     setAnno,
     toggleSpeciali,
     setStato,

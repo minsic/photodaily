@@ -117,6 +117,14 @@ onMounted(async () => {
 
     <p class="mt-2 text-sm text-muted">Tocca un giorno vuoto per aggiungere la sua foto.</p>
 
+    <RouterLink
+      :to="{ name: 'recover' }"
+      class="mt-4 flex items-center justify-center gap-2 rounded-2xl border-2 border-brick px-4 py-3 font-bold text-brick"
+    >
+      <AppIcon name="camera" class="size-5" />
+      Recupera giorni mancanti
+    </RouterLink>
+
     <AppSpinner v-if="loading" />
 
     <p v-else-if="error" class="mt-6 rounded-xl bg-brick/10 px-4 py-3 text-sm text-brick">

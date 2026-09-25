@@ -38,6 +38,11 @@ const router = createRouter({
       component: () => import('@/views/CalendarView.vue'),
     },
     {
+      path: '/recupera',
+      name: 'recover',
+      component: () => import('@/views/RecoverView.vue'),
+    },
+    {
       path: '/foto/:id(\\d+)',
       name: 'photo',
       component: () => import('@/views/PhotoView.vue'),

@@ -113,9 +113,18 @@ async function logout(): Promise<void> {
       </dl>
 
       <RouterLink
+        :to="{ name: 'recover' }"
+        class="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border-2 border-line py-2 font-bold"
+        @click="menuOpen = false"
+      >
+        <AppIcon name="camera" class="size-4" />
+        Recupera giorni mancanti
+      </RouterLink>
+
+      <RouterLink
         v-if="auth.isAdmin"
         :to="{ name: 'settings' }"
-        class="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border-2 border-line py-2 font-bold"
+        class="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border-2 border-line py-2 font-bold"
         @click="menuOpen = false"
       >
         <AppIcon name="settings" class="size-4" />
