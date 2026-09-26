@@ -50,7 +50,9 @@ return [
     |
     */
 
-    'expiration' => null,
+    // PhotoDaily: il token del login vale 90 giorni, poi si rientra con la
+    // password. I token scaduti li cancella sanctum:prune-expired (routes/console.php).
+    'expiration' => 60 * 24 * 90,
 
     /*
     |--------------------------------------------------------------------------

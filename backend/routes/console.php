@@ -10,3 +10,6 @@ Artisan::command('inspire', function () {
 
 // Promemoria serale: ogni 15 minuti si guarda a chi è arrivato l'orario.
 Schedule::command('photos:send-reminders')->everyFifteenMinutes()->withoutOverlapping();
+
+// Token del login scaduti (90 giorni, config/sanctum.php): via una volta al giorno.
+Schedule::command('sanctum:prune-expired --hours=24')->daily();

@@ -54,6 +54,19 @@ class AuthTest extends TestCase
         $this->withToken($token)->getJson('/api/me')->assertUnauthorized();
     }
 
+    public function test_token_expires_after_ninety_days(): void
+    {
+        $user = User::factory()->create();
+        $token = $user->createToken('spa')->plainTextToken;
+
+        $this->travel(89)->days();
+        $this->withToken($token)->getJson('/api/me')->assertOk();
+
+        $this->app['auth']->forgetGuards();
+        $this->travel(2)->days();
+        $this->withToken($token)->getJson('/api/me')->assertUnauthorized();
+    }
+
     public function test_login_is_rate_limited(): void
     {
         $user = User::factory()->create();
