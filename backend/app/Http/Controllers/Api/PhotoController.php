@@ -32,6 +32,7 @@ class PhotoController extends Controller
         $photos = $request->applyFilters(
             Photo::query()
                 ->where('family_id', $request->user()->family_id)
+                ->withHearts($request->user())
                 ->when($stato !== 'tutte', fn ($query) => $query->where('is_draft', $stato === 'bozze')),
         )->paginate($request->perPage())->withQueryString();
 

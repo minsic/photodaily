@@ -27,7 +27,7 @@ class PublicPhotoController extends Controller
 {
     public function index(IndexPhotosRequest $request): AnonymousResourceCollection
     {
-        $photos = $request->applyFilters($this->publishedPhotos($request))
+        $photos = $request->applyFilters($this->publishedPhotos($request)->withHearts())
             ->paginate($request->perPage())
             ->withQueryString();
 

@@ -223,6 +223,8 @@ class CrossFamilyAccessTest extends TestCase
             ['GET', "/api/photos/{$this->photoB->ulid}"],
             ['PUT', "/api/photos/{$this->photoB->ulid}"],
             ['DELETE', "/api/photos/{$this->photoB->ulid}"],
+            ['PUT', "/api/photos/{$this->photoB->ulid}/cuore"],
+            ['DELETE', "/api/photos/{$this->photoB->ulid}/cuore"],
             ['POST', '/api/photos'],
             ['GET', '/api/invites'],
             ['POST', '/api/invites'],

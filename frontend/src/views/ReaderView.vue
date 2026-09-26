@@ -12,6 +12,7 @@ import { usePublicDiaryStore } from '@/stores/publicDiary'
 import { useReaderStore } from '@/stores/reader'
 import { useToastsStore } from '@/stores/toasts'
 import { describeAge } from '@/utils/age'
+import { describeHearts } from '@/utils/hearts'
 import { captionToPlainText } from '@/utils/caption'
 import { formatLongDate } from '@/utils/date'
 import {
@@ -252,6 +253,40 @@ function close(): void {
   }
 
   void router.replace(backdrop ?? diary.value.to.timeline())
+}
+
+const heartBusy = ref(false)
+const heartText = computed(() => (photo.value ? describeHearts(photo.value.mio_cuore ?? false, photo.value.cuori_da ?? []) : null))
+
+/** Il cuore cambia subito; se il server non risponde torna com'era. */
+async function toggleHeart(): Promise<void> {
+  const current = photo.value
+
+  if (!current || heartBusy.value || !diary.value.canHeart) {
+    return
+  }
+
+  const on = !current.mio_cuore
+  const before = { cuori: current.cuori, mio_cuore: current.mio_cuore }
+
+  heartBusy.value = true
+  photo.value = { ...current, mio_cuore: on, cuori: Math.max(0, current.cuori + (on ? 1 : -1)) }
+
+  try {
+    const state = await diary.value.heart(current.id, on)
+
+    if (photo.value?.id === current.id) {
+      photo.value = { ...photo.value, ...state }
+    }
+  } catch {
+    if (photo.value?.id === current.id) {
+      photo.value = { ...photo.value, ...before }
+    }
+
+    toasts.error('Non riesco a salvare il cuore: riprova tra poco.')
+  } finally {
+    heartBusy.value = false
+  }
 }
 
 async function remove(): Promise<void> {
@@ -648,12 +683,32 @@ watch(() => props.id, load, { immediate: true })
           <AppIcon name="back" class="size-5" />
         </button>
 
-        <div
-          v-if="photo?.didascalia"
-          class="caption-html pointer-events-auto mx-auto max-h-32 max-w-2xl flex-1 overflow-y-auto text-sm leading-relaxed text-white/90"
-          v-html="photo.didascalia"
-        />
-        <div v-else class="flex-1" />
+        <div class="mx-auto flex min-w-0 max-w-2xl flex-1 flex-col gap-2">
+          <div v-if="photo && (diary.canHeart || photo.cuori > 0)" class="flex items-center gap-2">
+            <button
+              v-if="diary.canHeart"
+              type="button"
+              class="pointer-events-auto flex h-10 items-center gap-1.5 rounded-full bg-black/40 px-3 text-sm font-bold"
+              :aria-pressed="photo.mio_cuore ?? false"
+              :aria-label="photo.mio_cuore ? 'Togli il cuore' : 'Metti un cuore'"
+              @click="toggleHeart"
+            >
+              <AppIcon name="heart" :filled="photo.mio_cuore ?? false" class="size-5" :class="{ 'text-brick': photo.mio_cuore }" />
+              <span v-if="photo.cuori > 0">{{ photo.cuori }}</span>
+            </button>
+            <span v-else class="flex items-center gap-1.5 text-sm font-bold">
+              <AppIcon name="heart" filled class="size-4 text-brick" />
+              {{ photo.cuori }}
+            </span>
+            <p v-if="heartText" class="truncate text-xs text-white/80">{{ heartText }}</p>
+          </div>
+
+          <div
+            v-if="photo?.didascalia"
+            class="caption-html pointer-events-auto max-h-32 overflow-y-auto text-sm leading-relaxed text-white/90"
+            v-html="photo.didascalia"
+          />
+        </div>
 
         <button
           type="button"

@@ -2,7 +2,7 @@ import { computed, type ComputedRef } from 'vue'
 import { useRoute, type RouteLocationRaw } from 'vue-router'
 
 import { photos as photosApi, publicDiary as publicApi } from '@/api'
-import type { OnThisDay, Photo, PhotoCalendar, PhotoMonth, Protagonist, SequenceFilters, SequencePage, YearSummary } from '@/api/types'
+import type { HeartState, OnThisDay, Photo, PhotoCalendar, PhotoMonth, Protagonist, SequenceFilters, SequencePage, YearSummary } from '@/api/types'
 import { useAuthStore } from '@/stores/auth'
 import { usePhotosStore } from '@/stores/photos'
 import { usePublicDiaryStore } from '@/stores/publicDiary'
@@ -27,6 +27,9 @@ export interface Diary {
   /** Foto già in memoria (dalla timeline), da mostrare subito. */
   cached(id: string): Photo | undefined
   remove(id: string): Promise<void>
+  /** Il cuore: solo i membri della famiglia (nel diario pubblico si vede il numero). */
+  canHeart: boolean
+  heart(id: string, on: boolean): Promise<HeartState>
   /** Parametri comuni delle richieste (token del diario pubblico). */
   token: string | null
   to: {
@@ -60,6 +63,13 @@ export function useDiary(): ComputedRef<Diary> {
         year: (year) => photosApi.calendar(year),
         years: () => photosApi.years(),
         cached: (id) => photos.find(id),
+        canHeart: auth.isLoggedIn,
+        heart: async (id, on) => {
+          const state = await photosApi.heart(id, on)
+          photos.patch(id, { cuori: state.cuori, mio_cuore: state.mio_cuore })
+
+          return state
+        },
         remove: async (id) => {
           await photosApi.remove(id)
           photos.drop(id)
@@ -90,6 +100,8 @@ export function useDiary(): ComputedRef<Diary> {
       years: () => publicApi.years(slug, publicDiary.token),
       cached: (id) => publicDiary.find(id),
       remove: () => Promise.reject(new Error('Il diario pubblico è in sola lettura.')),
+      canHeart: false,
+      heart: () => Promise.reject(new Error('Il diario pubblico è in sola lettura.')),
       to: {
         timeline: () => ({ name: 'public-timeline', params: { slug } }),
         photo: (id) => ({ name: 'public-photo', params: { slug, id } }),

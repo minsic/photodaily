@@ -70,6 +70,16 @@ class PhotoResource extends JsonResource
             // Dimensioni della versione media, già ruotata: le proporzioni giuste da mostrare.
             'medium_width' => $this->medium_width,
             'medium_height' => $this->medium_height,
+            // Il numero dei cuori lo vedono tutti; se c'è il proprio e chi li ha
+            // messi, solo i membri (sulle rotte pubbliche l'utente è null).
+            'cuori' => (int) ($this->resource->cuori ?? $this->resource->hearts()->count()),
+            $this->mergeWhen($request->user() !== null, fn () => [
+                'mio_cuore' => (bool) ($this->resource->mio_cuore
+                    ?? $this->resource->hearts()->where('user_id', $request->user()->id)->exists()),
+            ]),
+            $this->mergeWhen($this->withNavigation && $request->user() !== null, fn () => [
+                'cuori_da' => $this->resource->heartNamesFor($request->user()),
+            ]),
             // Sulle rotte pubbliche non si espone chi ha caricato la foto.
             'uploaded_by' => $this->when($request->user() !== null, fn () => $this->uploaded_by),
             'created_at' => $this->created_at,

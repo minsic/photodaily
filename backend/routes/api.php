@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\FamilyAccessController;
 use App\Http\Controllers\Api\FamilyController;
 use App\Http\Controllers\Api\InviteController;
 use App\Http\Controllers\Api\PhotoController;
+use App\Http\Controllers\Api\PhotoHeartController;
 use App\Http\Controllers\Api\PublicAccessController;
 use App\Http\Controllers\Api\PublicPhotoController;
 use App\Http\Controllers\Api\PushController;
@@ -67,5 +68,7 @@ Route::middleware(['auth:sanctum', EnsureHostFamilyMember::class])->group(functi
     Route::get('/photos/sequenza', [PhotoController::class, 'sequence']);
     Route::get('/photos/mese', [PhotoController::class, 'month']);
     Route::get('/photos/anni-fa', [PhotoController::class, 'onThisDay']);
+    Route::put('/photos/{photo}/cuore', [PhotoHeartController::class, 'store'])->where('photo', '[0-7][0-9a-hjkmnp-tv-zA-HJKMNP-TV-Z]{25}');
+    Route::delete('/photos/{photo}/cuore', [PhotoHeartController::class, 'destroy'])->where('photo', '[0-7][0-9a-hjkmnp-tv-zA-HJKMNP-TV-Z]{25}');
     Route::apiResource('photos', PhotoController::class)->where(['photo' => '[0-7][0-9a-hjkmnp-tv-zA-HJKMNP-TV-Z]{25}']);
 });

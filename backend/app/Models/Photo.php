@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Collection;
 
 /**
@@ -51,6 +52,45 @@ class Photo extends Model
     public function family(): BelongsTo
     {
         return $this->belongsTo(Family::class);
+    }
+
+    /**
+     * @return HasMany<PhotoHeart, $this>
+     */
+    public function hearts(): HasMany
+    {
+        return $this->hasMany(PhotoHeart::class);
+    }
+
+    /**
+     * Quanti cuori ha la foto (cuori) e, per un membro, se c'è anche il suo
+     * (mio_cuore): una sola query per tutta la pagina, non una per foto.
+     *
+     * @param  Builder<self>  $query
+     */
+    public function scopeWithHearts(Builder $query, ?User $viewer = null): void
+    {
+        $query->withCount('hearts as cuori')
+            ->when($viewer, fn (Builder $query) => $query->withExists([
+                'hearts as mio_cuore' => fn (Builder $hearts) => $hearts->where('user_id', $viewer->id),
+            ]));
+    }
+
+    /**
+     * Chi ha messo il cuore, tranne chi guarda (per lui c'è mio_cuore), dal primo.
+     *
+     * @return list<string>
+     */
+    public function heartNamesFor(User $viewer): array
+    {
+        return $this->hearts()
+            ->where('user_id', '!=', $viewer->id)
+            ->with('user:id,name')
+            ->oldest()
+            ->get()
+            ->map(fn (PhotoHeart $heart) => $heart->user->name)
+            ->values()
+            ->all();
     }
 
     /**

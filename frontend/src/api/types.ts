@@ -90,6 +90,12 @@ export interface Photo {
   medium_width: number | null
   medium_height: number | null
   uploaded_by?: number | null
+  /** Cuori messi dai membri della famiglia: il numero lo vedono tutti. */
+  cuori: number
+  /** Solo per i membri: se c'è anche il proprio. */
+  mio_cuore?: boolean
+  /** Solo per i membri, sul dettaglio: chi altro l'ha messo, dal primo. */
+  cuori_da?: string[]
   created_at: string
   updated_at: string
   /** Presenti solo sul dettaglio. */
@@ -168,6 +174,12 @@ export interface PhotoPayload {
 }
 
 /** GET /photos/calendario: i giorni di un anno con e senza foto. */
+export interface HeartState {
+  cuori: number
+  mio_cuore: boolean
+  cuori_da: string[]
+}
+
 /** Una foto dello stesso giorno di N anni fa. */
 export interface YearsAgo {
   anni: number

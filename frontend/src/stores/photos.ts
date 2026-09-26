@@ -132,6 +132,15 @@ export const usePhotosStore = defineStore('photos', () => {
     }
   }
 
+  /** Aggiorna qualche campo di una foto già in elenco (per esempio i cuori). */
+  function patch(id: string, fields: Partial<Photo>): void {
+    const index = items.value.findIndex((photo) => photo.id === id)
+
+    if (index >= 0) {
+      items.value[index] = { ...items.value[index]!, ...fields }
+    }
+  }
+
   function drop(id: string): void {
     items.value = items.value.filter((photo) => photo.id !== id)
   }
@@ -206,6 +215,7 @@ export const usePhotosStore = defineStore('photos', () => {
     setStato,
     find,
     upsert,
+    patch,
     drop,
     refreshImage,
     refreshIfStale,

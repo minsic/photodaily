@@ -15,6 +15,7 @@ import type {
   PhotoPayload,
   Protagonist,
   Quota,
+  HeartState,
   SequenceFilters,
   SequencePage,
   ReadAccess,
@@ -94,6 +95,13 @@ export const photos = {
 
   get(id: string) {
     return api<{ data: Photo }>(`/photos/${id}`).then((response) => response.data)
+  },
+
+  /** Mette (true) o toglie (false) il proprio cuore; si può ripetere. */
+  heart(id: string, on: boolean) {
+    return api<{ data: HeartState }>(`/photos/${id}/cuore`, { method: on ? 'PUT' : 'DELETE' }).then(
+      (response) => response.data,
+    )
   },
 
   onThisDay() {

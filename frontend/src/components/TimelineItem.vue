@@ -108,6 +108,10 @@ async function onError(): Promise<void> {
           {{ formatDayAndMonth(photo.data) }}
         </time>
         <AppIcon v-if="photo.data_speciale" name="star" filled class="size-4 text-brick" />
+        <span v-if="photo.cuori > 0" class="ml-auto flex items-center gap-1 text-xs font-bold text-muted" :title="`${photo.cuori} cuori`">
+          <AppIcon name="heart" :filled="photo.mio_cuore ?? true" class="size-3.5 text-brick" />
+          {{ photo.cuori }}
+        </span>
         <span
           v-if="photo.is_draft"
           class="rounded bg-azure px-1.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-white"
