@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 
 import { ApiError } from '@/api/client'
@@ -8,8 +8,6 @@ import AppIcon from '@/components/AppIcon.vue'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import { useDiary } from '@/diary/useDiary'
 import { scopeFilters, type SlideshowScope, type SlideshowSpeed } from '@/slideshow/slideshow'
-import SlideshowPanel from '@/slideshow/SlideshowPanel.vue'
-import SlideshowPlayer from '@/slideshow/SlideshowPlayer.vue'
 import { usePublicDiaryStore } from '@/stores/publicDiary'
 import { useReaderStore } from '@/stores/reader'
 import { useToastsStore } from '@/stores/toasts'
@@ -39,6 +37,10 @@ import { canRetrySignedUrl } from '@/utils/signedUrls'
  * tastiera. Mostra la versione media; lo zoom carica la principale.
  */
 const props = defineProps<{ id: string }>()
+
+// Lo slideshow si scarica solo quando lo si apre: il lettore resta leggero.
+const SlideshowPanel = defineAsyncComponent(() => import('@/slideshow/SlideshowPanel.vue'))
+const SlideshowPlayer = defineAsyncComponent(() => import('@/slideshow/SlideshowPlayer.vue'))
 
 const diary = useDiary()
 const router = useRouter()
