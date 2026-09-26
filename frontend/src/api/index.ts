@@ -13,6 +13,8 @@ import type {
   PhotoPayload,
   Protagonist,
   Quota,
+  SequenceFilters,
+  SequencePage,
   ReadAccess,
   ReminderPreferences,
   SiteFamily,
@@ -90,6 +92,11 @@ export const photos = {
 
   get(id: string) {
     return api<{ data: Photo }>(`/photos/${id}`).then((response) => response.data)
+  },
+
+  /** Foto pubblicate in ordine di data, a blocchi da 100: per lo slideshow. */
+  sequence(filters: SequenceFilters) {
+    return api<SequencePage>('/photos/sequenza', { query: sequenceQuery(filters) })
   },
 
   create(image: File, payload: PhotoPayload) {
@@ -206,11 +213,22 @@ export const publicDiary = {
     })
   },
 
+  sequence(slug: string, token: string | null, filters: SequenceFilters) {
+    return api<SequencePage>(`/public/${encodeURIComponent(slug)}/photos/sequenza`, {
+      token,
+      query: sequenceQuery(filters),
+    })
+  },
+
   get(slug: string, token: string | null, id: string) {
     return api<{ data: Photo }>(`/public/${encodeURIComponent(slug)}/photos/${id}`, { token }).then(
       (response) => response.data,
     )
   },
+}
+
+function sequenceQuery(filters: SequenceFilters) {
+  return { da: filters.da, a: filters.a, speciali: filters.speciali ? 1 : undefined, dopo: filters.dopo }
 }
 
 function photoQuery(filters: PhotoFilters) {

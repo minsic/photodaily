@@ -3,10 +3,13 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 
 import { ApiError } from '@/api/client'
-import type { Photo } from '@/api/types'
+import type { Photo, SequenceFilters } from '@/api/types'
 import AppIcon from '@/components/AppIcon.vue'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import { useDiary } from '@/diary/useDiary'
+import { scopeFilters, type SlideshowScope, type SlideshowSpeed } from '@/slideshow/slideshow'
+import SlideshowPanel from '@/slideshow/SlideshowPanel.vue'
+import SlideshowPlayer from '@/slideshow/SlideshowPlayer.vue'
 import { usePublicDiaryStore } from '@/stores/publicDiary'
 import { useReaderStore } from '@/stores/reader'
 import { useToastsStore } from '@/stores/toasts'
@@ -63,6 +66,8 @@ const lastRetryAt = ref<number | null>(null)
 const confirmingDelete = ref(false)
 const deleting = ref(false)
 const stage = ref<HTMLElement | null>(null)
+const slideshowPanel = ref(false)
+const slideshow = ref<{ filters: SequenceFilters; speed: SlideshowSpeed; loop: boolean } | null>(null)
 const closeButton = ref<HTMLButtonElement | null>(null)
 
 const reducedMotion =
@@ -266,6 +271,25 @@ async function remove(): Promise<void> {
   }
 }
 
+function startSlideshow(options: { scope: SlideshowScope; speed: SlideshowSpeed; loop: boolean }): void {
+  slideshowPanel.value = false
+
+  if (shown.value) {
+    slideshow.value = { filters: scopeFilters(options.scope, shown.value.data), speed: options.speed, loop: options.loop }
+  }
+}
+
+/** Chiuso lo slideshow, il lettore resta sull'ultima foto mostrata. */
+function stopSlideshow(lastId: string | null): void {
+  slideshow.value = null
+
+  if (lastId && lastId !== props.id) {
+    photo.value = null
+    placeholder.value = null
+    void router.replace(diary.value.to.photo(lastId))
+  }
+}
+
 /* ---- Gesti ---- */
 
 interface Gesture {
@@ -465,7 +489,7 @@ function onWheel(event: WheelEvent): void {
 }
 
 function onKeydown(event: KeyboardEvent): void {
-  if (confirmingDelete.value) {
+  if (confirmingDelete.value || slideshowPanel.value || slideshow.value) {
     return
   }
 
@@ -582,6 +606,16 @@ watch(() => props.id, load, { immediate: true })
           <p v-if="age" class="text-sm text-white/80">{{ age }}</p>
         </div>
 
+        <button
+          v-if="shown"
+          type="button"
+          class="pointer-events-auto flex size-10 shrink-0 items-center justify-center rounded-full bg-black/40"
+          aria-label="Slideshow"
+          @click="slideshowPanel = true"
+        >
+          <AppIcon name="play" filled class="size-4" />
+        </button>
+
         <template v-if="photo && diary.canUpload">
           <RouterLink
             :to="{ name: 'photo-edit', params: { id: photo.id } }"
@@ -631,6 +665,16 @@ watch(() => props.id, load, { immediate: true })
       </div>
     </div>
   </div>
+
+  <SlideshowPanel v-if="slideshowPanel" @start="startSlideshow" @cancel="slideshowPanel = false" />
+  <SlideshowPlayer
+    v-if="slideshow"
+    :diary="diary"
+    :filters="slideshow.filters"
+    :speed="slideshow.speed"
+    :loop="slideshow.loop"
+    @close="stopSlideshow"
+  />
 
   <ConfirmDialog
     v-if="confirmingDelete"

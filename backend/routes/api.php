@@ -36,6 +36,7 @@ Route::prefix('public/{family_slug}')->group(function () {
         Route::get('/profilo', [FamilyController::class, 'showPublic']);
         Route::get('/photos', [PublicPhotoController::class, 'index']);
         Route::get('/photos/anni', [PublicPhotoController::class, 'years']);
+        Route::get('/photos/sequenza', [PublicPhotoController::class, 'sequence']);
         Route::get('/photos/{photo}', [PublicPhotoController::class, 'show'])->whereUlid('photo');
     });
 });
@@ -60,5 +61,6 @@ Route::middleware(['auth:sanctum', EnsureHostFamilyMember::class])->group(functi
 
     Route::get('/photos/anni', [PhotoController::class, 'years']);
     Route::get('/photos/calendario', [PhotoController::class, 'calendar']);
+    Route::get('/photos/sequenza', [PhotoController::class, 'sequence']);
     Route::apiResource('photos', PhotoController::class)->where(['photo' => '[0-7][0-9a-hjkmnp-tv-zA-HJKMNP-TV-Z]{25}']);
 });

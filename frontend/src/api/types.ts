@@ -168,6 +168,30 @@ export interface PhotoPayload {
 }
 
 /** GET /photos/calendario: i giorni di un anno con e senza foto. */
+/** Una foto nell'elenco leggero dello slideshow. */
+export interface SequenceItem {
+  id: string
+  data: string
+  data_speciale: boolean
+  medium_url: string | null
+  thumbnail_url: string
+  medium_width: number | null
+  medium_height: number | null
+}
+
+export interface SequencePage {
+  data: SequenceItem[]
+  /** Cursore per il blocco successivo, null se era l'ultimo. */
+  next: string | null
+}
+
+export interface SequenceFilters {
+  da?: string
+  a?: string
+  speciali?: boolean
+  dopo?: string
+}
+
 /** Uso del piano. I massimi null vogliono dire illimitato. */
 export interface Quota {
   plan: string

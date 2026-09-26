@@ -4,11 +4,13 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\IndexPhotosRequest;
+use App\Http\Requests\SequenceRequest;
 use App\Http\Requests\StorePhotoRequest;
 use App\Http\Requests\UpdatePhotoRequest;
 use App\Http\Resources\PhotoResource;
 use App\Models\Photo;
 use App\Services\PhotoCalendar;
+use App\Services\PhotoSequence;
 use App\Services\PhotoStorage;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -55,6 +57,17 @@ class PhotoController extends Controller
             ?? (int) substr($family->today(), 0, 4);
 
         return response()->json(['data' => $calendar->forYear($family, (int) $year)]);
+    }
+
+    /**
+     * Foto pubblicate in ordine di data, leggere, per lo slideshow.
+     */
+    public function sequence(SequenceRequest $request, PhotoSequence $sequence): JsonResponse
+    {
+        return response()->json($sequence->page(
+            Photo::query()->where('family_id', $request->user()->family_id),
+            $request->validated(),
+        ));
     }
 
     public function show(Photo $photo): PhotoResource

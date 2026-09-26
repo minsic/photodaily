@@ -5,9 +5,11 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Middleware\EnsurePublicFamilyAccess;
 use App\Http\Requests\IndexPhotosRequest;
+use App\Http\Requests\SequenceRequest;
 use App\Http\Resources\PhotoResource;
 use App\Models\Family;
 use App\Models\Photo;
+use App\Services\PhotoSequence;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -34,6 +36,11 @@ class PublicPhotoController extends Controller
         return response()->json([
             'data' => Photo::publishedYearsFor($this->family($request)->id),
         ]);
+    }
+
+    public function sequence(SequenceRequest $request, PhotoSequence $sequence): JsonResponse
+    {
+        return response()->json($sequence->page($this->publishedPhotos($request), $request->validated()));
     }
 
     public function show(Request $request, string $familySlug, string $photo): PhotoResource

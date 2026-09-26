@@ -22,6 +22,12 @@ const paths = {
   lock: 'M6 11h12a1 1 0 011 1v8a1 1 0 01-1 1H6a1 1 0 01-1-1v-8a1 1 0 011-1z M8 11V7a4 4 0 118 0v4',
   globe: 'M12 21a9 9 0 100-18 9 9 0 000 18z M3.5 9h17M3.5 15h17 M12 3a14 14 0 000 18 14 14 0 000-18z',
   mail: 'M3 7a2 2 0 012-2h14a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V7z M3.5 7.5l8.5 6 8.5-6',
+  play: 'M7 5l12 7-12 7V5z',
+  pause: 'M8 5v14M16 5v14',
+  expand: 'M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5',
+  repeat: 'M17 2l4 4-4 4M3 11V9a3 3 0 013-3h15M7 22l-4-4 4-4M21 13v2a3 3 0 01-3 3H3',
+  grid: 'M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z',
+  list: 'M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01',
 } as const
 
 const props = withDefaults(defineProps<{ name: IconName; filled?: boolean }>(), { filled: false })

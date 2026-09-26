@@ -2,7 +2,7 @@ import { computed, type ComputedRef } from 'vue'
 import { useRoute, type RouteLocationRaw } from 'vue-router'
 
 import { photos as photosApi, publicDiary as publicApi } from '@/api'
-import type { Photo, Protagonist } from '@/api/types'
+import type { Photo, Protagonist, SequenceFilters, SequencePage } from '@/api/types'
 import { useAuthStore } from '@/stores/auth'
 import { usePhotosStore } from '@/stores/photos'
 import { usePublicDiaryStore } from '@/stores/publicDiary'
@@ -19,6 +19,7 @@ export interface Diary {
   canUpload: boolean
   protagonist: Protagonist | null
   photo(id: string): Promise<Photo>
+  sequence(filters: SequenceFilters): Promise<SequencePage>
   /** Foto già in memoria (dalla timeline), da mostrare subito. */
   cached(id: string): Photo | undefined
   remove(id: string): Promise<void>
@@ -49,6 +50,7 @@ export function useDiary(): ComputedRef<Diary> {
         protagonist: auth.family?.protagonist ?? null,
         token: null,
         photo: (id) => photosApi.get(id),
+        sequence: (filters) => photosApi.sequence(filters),
         cached: (id) => photos.find(id),
         remove: async (id) => {
           await photosApi.remove(id)
@@ -73,6 +75,7 @@ export function useDiary(): ComputedRef<Diary> {
       protagonist: publicDiary.protagonist,
       token: publicDiary.token,
       photo: (id) => publicApi.get(slug, publicDiary.token, id),
+      sequence: (filters) => publicApi.sequence(slug, publicDiary.token, filters),
       cached: (id) => publicDiary.find(id),
       remove: () => Promise.reject(new Error('Il diario pubblico è in sola lettura.')),
       to: {

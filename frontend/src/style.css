@@ -98,3 +98,20 @@
     opacity: 1;
   }
 }
+
+/* Slideshow: dissolvenza incrociata fra una foto e la successiva. */
+@keyframes slide-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+.slide-fade-in {
+  animation: slide-fade-in 900ms ease both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .slide-fade-in {
+    animation: none;
+  }
+}
