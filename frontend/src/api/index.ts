@@ -46,6 +46,20 @@ export const auth = {
     return api<void>('/logout', { method: 'POST' })
   },
 
+  /** Stessa risposta che l'account esista o no. */
+  forgotPassword(email: string) {
+    return api<{ message: string }>('/password/dimenticata', { method: 'POST', body: { email }, token: null })
+  },
+
+  /** Imposta la password nuova col token dell'email e apre la sessione. */
+  resetPassword(payload: { token: string; email: string; password: string; password_confirmation: string }) {
+    return api<LoginResponse>('/password/nuova', {
+      method: 'POST',
+      body: { ...payload, device_name: deviceName() },
+      token: null,
+    })
+  },
+
   me() {
     return api<{ data: User }>('/me').then((response) => response.data)
   },

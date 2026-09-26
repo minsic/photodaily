@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 
 import { ApiError } from '@/api/client'
 import AppLogo from '@/components/logo/AppLogo.vue'
@@ -84,6 +84,15 @@ async function onSubmit(): Promise<void> {
           {{ busy ? 'Accesso…' : 'Entra' }}
         </button>
       </form>
+
+      <p class="mt-6 text-center text-sm">
+        <RouterLink
+          :to="{ name: 'forgot-password', query: email ? { email } : {} }"
+          class="font-bold text-muted underline hover:text-ink"
+        >
+          Password dimenticata?
+        </RouterLink>
+      </p>
     </div>
   </main>
 </template>

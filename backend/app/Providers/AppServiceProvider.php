@@ -34,6 +34,14 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(5)->by(mb_strtolower((string) $request->input('email')).'|'.$request->ip());
         });
 
+        // Password dimenticata: niente raffiche di email né tentativi sui token.
+        RateLimiter::for('password-reset', function (Request $request) {
+            return [
+                Limit::perMinute(5)->by($request->ip()),
+                Limit::perHour(10)->by('email|'.mb_strtolower((string) $request->input('email'))),
+            ];
+        });
+
         RateLimiter::for('invites', function (Request $request) {
             return Limit::perMinute(10)->by($request->ip());
         });

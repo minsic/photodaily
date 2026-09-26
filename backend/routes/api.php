@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\FamilyAccessController;
 use App\Http\Controllers\Api\FamilyController;
 use App\Http\Controllers\Api\InviteController;
+use App\Http\Controllers\Api\PasswordResetController;
 use App\Http\Controllers\Api\PhotoController;
 use App\Http\Controllers\Api\PhotoHeartController;
 use App\Http\Controllers\Api\PublicAccessController;
@@ -21,6 +22,11 @@ Route::get('/site', [SiteController::class, 'show'])->middleware('throttle:publi
 Route::get('/tls/ask', [SiteController::class, 'tlsAsk']);
 
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login');
+
+Route::middleware('throttle:password-reset')->group(function () {
+    Route::post('/password/dimenticata', [PasswordResetController::class, 'forgot']);
+    Route::post('/password/nuova', [PasswordResetController::class, 'reset']);
+});
 
 Route::middleware('throttle:invites')->group(function () {
     Route::get('/invites/{token}', [InviteController::class, 'show']);

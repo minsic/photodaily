@@ -90,6 +90,23 @@ const router = createRouter({
       meta: { admin: true },
     },
     {
+      path: '/password/dimenticata',
+      name: 'forgot-password',
+      component: () => import('@/views/ForgotPasswordView.vue'),
+      meta: { guest: true },
+    },
+    {
+      // Dal link dell'email: ?token=…&email=…
+      path: '/password/nuova',
+      name: 'reset-password',
+      component: () => import('@/views/ResetPasswordView.vue'),
+      props: (route) => ({
+        token: typeof route.query.token === 'string' ? route.query.token : '',
+        email: typeof route.query.email === 'string' ? route.query.email : '',
+      }),
+      meta: { guest: true },
+    },
+    {
       // "/invito/..." resta valido per i link già mandati per email.
       path: '/invite/:token',
       alias: '/invito/:token',
