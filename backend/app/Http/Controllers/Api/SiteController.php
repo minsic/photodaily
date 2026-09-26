@@ -45,9 +45,15 @@ class SiteController extends Controller
      * Risposta per l'on-demand TLS di Caddy: 200 se per quel dominio
      * si può chiedere un certificato, 404 altrimenti. Senza questo controllo
      * chiunque potrebbe far generare certificati per domini a caso.
+     *
+     * Solo da localhost (Caddy chiede a se stesso su 127.0.0.1:8081): da
+     * fuori servirebbe soltanto a scoprire quali slug esistono. In produzione
+     * TRUSTED_PROXIES è vuoto, quindi l'IP è quello vero della connessione.
      */
     public function tlsAsk(Request $request): JsonResponse
     {
+        abort_unless(in_array($request->ip(), ['127.0.0.1', '::1'], true), 404);
+
         $domain = Family::normalizeHost((string) $request->query('domain'));
 
         abort_unless($domain !== '' && ($domain === Family::mainHost() || Family::forHost($domain) !== null), 404);

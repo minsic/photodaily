@@ -53,6 +53,11 @@ https:// {
 		-Server
 	}
 
+	# La domanda dell'on-demand TLS è solo per Caddy (sito su 127.0.0.1:8081).
+	handle /api/tls/* {
+		respond 404
+	}
+
 	# API Laravel sullo stesso host del frontend.
 	handle /api/* {
 		import photodaily_app
