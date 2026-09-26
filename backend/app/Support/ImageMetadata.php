@@ -21,6 +21,62 @@ final class ImageMetadata
     /** Byte per elemento dei tipi TIFF (BYTE, ASCII, SHORT, LONG, RATIONAL, SBYTE, UNDEFINED, SSHORT, SLONG, SRATIONAL, FLOAT, DOUBLE). */
     private const TYPE_SIZES = [1 => 1, 2 => 1, 3 => 2, 4 => 4, 5 => 8, 6 => 1, 7 => 1, 8 => 2, 9 => 4, 10 => 8, 11 => 4, 12 => 8];
 
+    /**
+     * Toglie tutti i metadati, non solo la posizione. Nei JPEG restano solo
+     * JFIF, il profilo colore ICC e il blocco Adobe (servono a leggere bene
+     * i colori); EXIF, XMP, IPTC e gli altri APP vanno via. I commenti (COM)
+     * restano: li scrivono gli encoder ("CREATOR: gd-jpeg"), non gli
+     * apparecchi, e non contengono dati personali. L'EXIF deve già essere
+     * applicato ai pixel: chi chiama ricodifica le foto ruotate.
+     */
+    public static function stripped(string $bytes): ?string
+    {
+        if (! str_starts_with($bytes, "\xFF\xD8")) {
+            return self::withoutLocation($bytes);
+        }
+
+        $out = "\xFF\xD8";
+        $pos = 2;
+        $length = strlen($bytes);
+
+        while ($pos + 4 <= $length) {
+            if ($bytes[$pos] !== "\xFF") {
+                return null;
+            }
+
+            $marker = ord($bytes[$pos + 1]);
+
+            if ($marker === 0xDA || $marker === 0xD9) {
+                return $out.substr($bytes, $pos);
+            }
+
+            $size = unpack('n', substr($bytes, $pos + 2, 2))[1];
+            $segment = substr($bytes, $pos, 2 + $size);
+
+            if (strlen($segment) !== 2 + $size) {
+                return null;
+            }
+
+            $payload = substr($segment, 4);
+            $keep = match (true) {
+                $marker === 0xE0 => str_starts_with($payload, "JFIF\0"),
+                $marker === 0xE2 => str_starts_with($payload, "ICC_PROFILE\0"),
+                $marker === 0xEE => str_starts_with($payload, 'Adobe'),
+                // APP1-APP15: EXIF, XMP, MPF, IPTC...
+                $marker >= 0xE0 && $marker <= 0xEF => false,
+                default => true,
+            };
+
+            if ($keep) {
+                $out .= $segment;
+            }
+
+            $pos += 2 + $size;
+        }
+
+        return null;
+    }
+
     public static function withoutLocation(string $bytes): ?string
     {
         return match (true) {

@@ -19,8 +19,8 @@ beforeEach(function () {
     Sanctum::actingAs(User::factory()->for($this->family)->create());
 });
 
-/** Blocco EXIF (TIFF little endian) con orientamento 6 e coordinate GPS. */
-function exifWithGps(): string
+/** Blocco EXIF (TIFF little endian) con orientamento (6 di serie) e coordinate GPS. */
+function exifWithGps(int $orientation = 6): string
 {
     $u16 = fn (int $v) => pack('v', $v);
     $u32 = fn (int $v) => pack('V', $v);
@@ -32,7 +32,7 @@ function exifWithGps(): string
 
     $tiff = 'II'.$u16(42).$u32(8)
         .$u16(2)
-        .$entry(0x0112, 3, 1, $u16(6))
+        .$entry(0x0112, 3, 1, $u16($orientation))
         .$entry(0x8825, 4, 1, $u32($gpsOffset))
         .$u32(0)
         .$u16(4)
@@ -47,7 +47,7 @@ function exifWithGps(): string
     return "Exif\0\0".$tiff;
 }
 
-function jpegWithMetadata(bool $xmp = false): string
+function jpegWithMetadata(bool $xmp = false, int $orientation = 6): string
 {
     $image = imagecreatetruecolor(640, 480);
     imagefilledrectangle($image, 0, 0, 320, 480, 0xC05040);
@@ -56,7 +56,7 @@ function jpegWithMetadata(bool $xmp = false): string
     $jpeg = (string) ob_get_clean();
 
     $app1 = fn (string $payload) => "\xFF\xE1".pack('n', strlen($payload) + 2).$payload;
-    $segments = $app1(exifWithGps());
+    $segments = $app1(exifWithGps($orientation));
 
     if ($xmp) {
         $segments .= $app1("http://ns.adobe.com/xap/1.0/\0<x:xmpmeta><exif:GPSLatitude>45,27.5N</exif:GPSLatitude></x:xmpmeta>");
@@ -81,7 +81,7 @@ function scanData(string $jpeg): string
     return substr($jpeg, strpos($jpeg, "\xFF\xDA"));
 }
 
-it('removes the gps coordinates from a jpeg without touching orientation or pixels', function () {
+it('applies the exif rotation to the pixels and keeps no metadata at all', function () {
     $original = jpegWithMetadata();
     expect(exifOf($original)['GPS']['GPSLatitude'] ?? null)->not->toBeNull();
 
@@ -90,13 +90,30 @@ it('removes the gps coordinates from a jpeg without touching orientation or pixe
         'data' => '2026-03-02',
     ])->assertCreated();
 
-    $stored = Storage::disk('r2')->get(Photo::sole()->image_path);
-    $exif = exifOf($stored);
+    $photo = Photo::sole();
+    $stored = Storage::disk('r2')->get($photo->image_path);
+    $image = imagecreatefromstring($stored);
 
-    expect($exif['GPS']['GPSLatitude'] ?? null)->toBeNull()
-        ->and($exif['GPS']['GPSLongitude'] ?? null)->toBeNull()
-        ->and($exif['IFD0']['Orientation'] ?? null)->toBe(6)
-        ->and(strlen($stored))->toBe(strlen($original))
+    // 640x480 con la metà sinistra rossa, orientamento 6 (90° in senso orario):
+    // diventa 480x640 con la metà rossa in alto.
+    expect(exifOf($stored))->not->toHaveKeys(['GPS', 'IFD0', 'EXIF'])
+        ->and([$photo->width, $photo->height])->toBe([480, 640])
+        ->and(imagecolorat($image, 240, 100) >> 16)->toBeGreaterThan(150)
+        ->and(imagecolorat($image, 240, 540) >> 16)->toBeLessThan(50);
+});
+
+it('strips gps and every other exif block from a jpeg without recompressing it', function () {
+    $original = jpegWithMetadata(xmp: true, orientation: 1);
+
+    $this->postJson('/api/photos', [
+        'image' => UploadedFile::fake()->createWithContent('scatto.jpg', $original),
+        'data' => '2026-03-02',
+    ])->assertCreated();
+
+    $stored = Storage::disk('r2')->get(Photo::sole()->image_path);
+
+    expect(exifOf($stored))->not->toHaveKeys(['GPS', 'IFD0', 'EXIF'])
+        ->and($stored)->not->toContain('ns.adobe.com')
         ->and(scanData($stored))->toBe(scanData($original));
 });
 

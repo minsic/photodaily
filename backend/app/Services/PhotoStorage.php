@@ -7,18 +7,17 @@ use App\Jobs\GeneratePhotoVariants;
 use App\Models\Family;
 use App\Models\Photo;
 use App\Models\User;
-use App\Support\ImageMetadata;
 use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Filesystem\FilesystemManager;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Image;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\File\File;
 use Throwable;
 
 /**
- * Unico punto di scrittura delle immagini: carica su R2 l'originale (senza
- * dati di posizione), applica i limiti del piano e tiene aggiornato
+ * Unico punto di scrittura delle immagini: carica su R2 la versione
+ * principale (al massimo 4096 px, senza metadati: vedi MainImage, mai
+ * l'originale grezzo), applica i limiti del piano e tiene aggiornato
  * families.storage_used_mb. Versione media e miniatura le genera dopo il job
  * GeneratePhotoVariants, così una raffica di upload non tiene occupati i
  * processi web. Usato sia dall'API che dal comando di import, così nessun
@@ -39,6 +38,7 @@ class PhotoStorage
     public function __construct(
         private readonly FilesystemManager $filesystem,
         private readonly ThumbnailMaker $thumbnails,
+        private readonly MainImage $mainImage,
     ) {}
 
     public function diskName(): string
@@ -58,7 +58,7 @@ class PhotoStorage
      */
     public function create(Family $family, File $file, array $attributes, ?User $uploader = null, ?string $filename = null): Photo
     {
-        [$file, $temporary] = $this->withoutLocation($file);
+        ['file' => $file, 'temporary' => $temporary, 'width' => $width, 'height' => $height] = $this->mainImage->prepare($file);
 
         try {
             $bytes = $file->getSize();
@@ -69,7 +69,7 @@ class PhotoStorage
             $path = $this->upload($family, $file, $filename);
 
             try {
-                $photo = DB::transaction(function () use ($family, $file, $attributes, $uploader, $path, $bytes) {
+                $photo = DB::transaction(function () use ($family, $attributes, $uploader, $path, $bytes, $width, $height) {
                     // Il lock sulla famiglia serializza gli upload concorrenti: il controllo
                     // definitivo dei limiti avviene qui, dentro la transazione.
                     $family = Family::query()->lockForUpdate()->findOrFail($family->id);
@@ -77,7 +77,8 @@ class PhotoStorage
 
                     $photo = $family->photos()->create([
                         ...$attributes,
-                        ...$this->dimensions($file),
+                        'width' => $width,
+                        'height' => $height,
                         'image_path' => $path,
                         'size_bytes' => $bytes,
                         'uploaded_by' => $uploader?->id,
@@ -111,7 +112,7 @@ class PhotoStorage
      */
     public function replaceImage(Photo $photo, File $file, ?string $filename = null): Photo
     {
-        [$file, $temporary] = $this->withoutLocation($file);
+        ['file' => $file, 'temporary' => $temporary, 'width' => $width, 'height' => $height] = $this->mainImage->prepare($file);
 
         try {
             $bytes = $file->getSize();
@@ -124,13 +125,14 @@ class PhotoStorage
             $path = $this->upload($family, $file, $filename);
 
             try {
-                DB::transaction(function () use ($photo, $family, $file, $path, $bytes, $delta) {
+                DB::transaction(function () use ($photo, $family, $path, $bytes, $delta, $width, $height) {
                     $family = Family::query()->lockForUpdate()->findOrFail($family->id);
                     $family->ensureCanStore($delta, photos: 0);
 
                     // Le versioni ridotte vecchie non valgono più: le rifà il job.
                     $photo->update([
-                        ...$this->dimensions($file),
+                        'width' => $width,
+                        'height' => $height,
                         ...self::NO_VARIANTS,
                         'image_path' => $path,
                         'size_bytes' => $bytes,
@@ -263,6 +265,70 @@ class PhotoStorage
         return true;
     }
 
+    /**
+     * Ricodifica una versione principale già su R2 (4096 px, JPEG 88) e la
+     * sostituisce in tutte le foto che la usano. Con $dryRun non scrive
+     * niente: misura soltanto. Null se la ricodifica non farebbe risparmiare.
+     *
+     * @return array{before: int, after: int, width: int|null, height: int|null}|null
+     */
+    public function shrinkMainImage(string $imagePath, bool $dryRun = false): ?array
+    {
+        $source = tempnam(sys_get_temp_dir(), 'photodaily-principale-r2');
+        $prepared = null;
+
+        try {
+            file_put_contents($source, $this->disk()->get($imagePath));
+            $before = (int) filesize($source);
+            $prepared = $this->mainImage->prepare(new File($source), forceReencode: true);
+            $after = (int) $prepared['file']->getSize();
+            $result = ['before' => $before, 'after' => $after, 'width' => $prepared['width'], 'height' => $prepared['height']];
+
+            if ($after >= $before) {
+                return null;
+            }
+
+            if ($dryRun) {
+                return $result;
+            }
+
+            $path = $this->upload(Photo::query()->where('image_path', $imagePath)->firstOrFail()->family, $prepared['file'], null);
+
+            try {
+                DB::transaction(function () use ($imagePath, $path, $result) {
+                    $photos = Photo::query()->where('image_path', $imagePath)->get();
+
+                    foreach ($photos->pluck('family_id')->unique() as $familyId) {
+                        Family::query()->lockForUpdate()->findOrFail($familyId);
+                    }
+
+                    Photo::query()->where('image_path', $imagePath)->update([
+                        'image_path' => $path,
+                        'size_bytes' => $result['after'],
+                        'width' => $result['width'],
+                        'height' => $result['height'],
+                    ]);
+
+                    Family::query()->whereIn('id', $photos->pluck('family_id')->unique())->get()->each->refreshStorageUsage();
+                });
+            } catch (Throwable $e) {
+                $this->disk()->delete($path);
+
+                throw $e;
+            }
+
+            $this->deleteIfUnused($imagePath);
+
+            return $result;
+        } finally {
+            @unlink($source);
+
+            if ($prepared !== null && $prepared['temporary'] !== null) {
+                @unlink($prepared['temporary']);
+            }
+        }
+    }
+
     public function delete(Photo $photo): void
     {
         DB::transaction(function () use ($photo) {
@@ -338,36 +404,6 @@ class PhotoStorage
     }
 
     /**
-     * Copia del file senza dati di posizione (GPS dell'EXIF, XMP). Si lavora
-     * sui byte senza ricomprimere; solo se il file non si lascia leggere lo si
-     * ricodifica, che toglie comunque tutti i metadati.
-     *
-     * @return array{0: File, 1: string|null} il file da caricare e l'eventuale file temporaneo da cancellare
-     */
-    private function withoutLocation(File $file): array
-    {
-        $original = (string) file_get_contents($file->getPathname());
-        $clean = ImageMetadata::withoutLocation($original);
-
-        if ($clean === $original) {
-            return [$file, null];
-        }
-
-        if ($clean === null) {
-            $extension = strtolower($file->guessExtension() ?? 'jpg');
-            $clean = Image::fromPath($file->getPathname())
-                ->orient()
-                ->optimize($extension === 'jpeg' ? 'jpg' : $extension, 92)
-                ->toBytes();
-        }
-
-        $temporary = tempnam(sys_get_temp_dir(), 'photodaily-pulita');
-        file_put_contents($temporary, $clean);
-
-        return [new File($temporary), $temporary];
-    }
-
-    /**
      * @param  array{bytes: string, extension: string, width: int, height: int}|null  $variant
      * @param  'thumbs'|'medium'  $folder
      * @return array{path: string, bytes: int}|null
@@ -389,18 +425,5 @@ class PhotoStorage
         $this->disk()->put($path, $variant['bytes']);
 
         return ['path' => $path, 'bytes' => strlen($variant['bytes'])];
-    }
-
-    /**
-     * @return array{width: int|null, height: int|null}
-     */
-    private function dimensions(File $file): array
-    {
-        $size = @getimagesize($file->getPathname());
-
-        return [
-            'width' => $size[0] ?? null,
-            'height' => $size[1] ?? null,
-        ];
     }
 }

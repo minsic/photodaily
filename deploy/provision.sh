@@ -51,9 +51,10 @@ update-alternatives --set php /usr/bin/php$PHP
 
 for sapi in fpm cli; do
     cat > /etc/php/$PHP/$sapi/conf.d/99-photodaily.ini <<'INI'
-; Foto fino a 20 MB (PHOTOS_MAX_UPLOAD_KB), con margine per il resto del form.
-upload_max_filesize = 25M
-post_max_size = 30M
+; Foto fino a 25 MB (PHOTOS_MAX_UPLOAD_KB): PHP ne accetta di più, così oltre
+; il limite risponde Laravel con un messaggio chiaro.
+upload_max_filesize = 32M
+post_max_size = 40M
 memory_limit = 256M
 expose_php = Off
 

@@ -15,9 +15,15 @@ return [
 
     'disk' => env('PHOTOS_DISK', 'r2'),
 
+    // Lato lungo della versione principale su R2 (vedi App\Services\MainImage).
+    'main_max_side' => 4096,
+
     'url_ttl_minutes' => (int) env('PHOTOS_URL_TTL_MINUTES', 60),
 
-    'max_upload_kb' => (int) env('PHOTOS_MAX_UPLOAD_KB', 20480),
+    // 25 MB: le foto da 48 MP dell'iPhone arrivano a 20 MB. PHP deve
+    // accettarne di più (upload_max_filesize), altrimenti il messaggio chiaro
+    // di Laravel non arriva mai.
+    'max_upload_kb' => (int) env('PHOTOS_MAX_UPLOAD_KB', 25600),
 
     // Memoria concessa mentre si genera una miniatura: GD lavora su bitmap
     // non compresse, quindi una foto da 12 megapixel ne chiede una sessantina di MB.
