@@ -5,15 +5,18 @@ use App\Models\Photo;
 use App\Models\User;
 use App\Services\MainImage;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Testing\TestResponse;
 use Laravel\Sanctum\Sanctum;
+use Symfony\Component\HttpFoundation\File\File;
 
 beforeEach(function () {
     Storage::fake('r2');
     Sanctum::actingAs(User::factory()->for(Family::factory())->create());
 });
 
-function upload(UploadedFile $image): Illuminate\Testing\TestResponse
+function upload(UploadedFile $image): TestResponse
 {
     return test()->postJson('/api/photos', ['image' => $image, 'data' => '2024-05-01']);
 }
@@ -108,7 +111,7 @@ it('applies every exif orientation to the pixels', function (int $orientation, a
     $path = tempnam(sys_get_temp_dir(), 'orient');
     file_put_contents($path, orientedJpeg($orientation));
 
-    $prepared = app(MainImage::class)->prepare(new Symfony\Component\HttpFoundation\File\File($path));
+    $prepared = app(MainImage::class)->prepare(new File($path));
     $image = imagecreatefromjpeg($prepared['file']->getPathname());
     [$x, $y] = $redCorner;
 
@@ -137,7 +140,7 @@ it('re-encodes one photo at a time and answers 503 when the turn does not come',
     $png = (string) ob_get_clean();
 
     // Un'altra ricodifica in corso: il lock è già preso.
-    $lock = Illuminate\Support\Facades\Cache::lock('photodaily:ricodifica', 30);
+    $lock = Cache::lock('photodaily:ricodifica', 30);
     expect($lock->get())->toBeTrue();
 
     upload(UploadedFile::fake()->createWithContent('grande.png', $png))

@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\AccessMode;
 use App\Models\Family;
 use App\Models\Photo;
 use App\Models\User;
@@ -152,7 +153,7 @@ it('never shows drafts in the public month and year views', function () {
     photoOn($this->family, '2026-03-02');
     photoOn($this->family, '2026-03-05', ['is_draft' => true]);
     $this->family->update(['slug' => 'giopellino']);
-    $this->family->changeAccessMode(App\Enums\AccessMode::Public);
+    $this->family->changeAccessMode(AccessMode::Public);
 
     $month = $this->getJson('/api/public/giopellino/photos/mese?anno=2026&mese=3')->assertOk()->json('data');
     expect(collect($month['giorni'])->pluck('data')->all())->toBe(['2026-03-02']);
