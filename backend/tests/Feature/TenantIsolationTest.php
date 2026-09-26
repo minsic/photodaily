@@ -43,10 +43,10 @@ class TenantIsolationTest extends TestCase
     public function test_guests_cannot_access_any_photo_endpoint(): void
     {
         $this->getJson('/api/photos')->assertUnauthorized();
-        $this->getJson("/api/photos/{$this->photoB->id}")->assertUnauthorized();
+        $this->getJson("/api/photos/{$this->photoB->ulid}")->assertUnauthorized();
         $this->postJson('/api/photos', [])->assertUnauthorized();
-        $this->patchJson("/api/photos/{$this->photoB->id}", ['didascalia' => 'x'])->assertUnauthorized();
-        $this->deleteJson("/api/photos/{$this->photoB->id}")->assertUnauthorized();
+        $this->patchJson("/api/photos/{$this->photoB->ulid}", ['didascalia' => 'x'])->assertUnauthorized();
+        $this->deleteJson("/api/photos/{$this->photoB->ulid}")->assertUnauthorized();
     }
 
     public function test_index_lists_only_photos_of_the_users_family(): void
@@ -57,22 +57,22 @@ class TenantIsolationTest extends TestCase
 
         $response = $this->getJson('/api/photos?stato=tutte')->assertOk();
 
-        $this->assertEqualsCanonicalizing($own->pluck('id')->all(), $response->json('data.*.id'));
-        $response->assertJsonMissing(['id' => $this->photoB->id]);
+        $this->assertEqualsCanonicalizing($own->pluck('ulid')->all(), $response->json('data.*.id'));
+        $response->assertJsonMissing(['id' => $this->photoB->ulid]);
     }
 
     public function test_user_cannot_read_a_photo_of_another_family(): void
     {
         Sanctum::actingAs($this->userA);
 
-        $this->getJson("/api/photos/{$this->photoB->id}")->assertNotFound();
+        $this->getJson("/api/photos/{$this->photoB->ulid}")->assertNotFound();
     }
 
     public function test_user_cannot_update_a_photo_of_another_family(): void
     {
         Sanctum::actingAs($this->userA);
 
-        $this->patchJson("/api/photos/{$this->photoB->id}", ['didascalia' => 'modificata'])->assertNotFound();
+        $this->patchJson("/api/photos/{$this->photoB->ulid}", ['didascalia' => 'modificata'])->assertNotFound();
 
         $this->assertNotSame('modificata', $this->photoB->fresh()->didascalia);
     }
@@ -81,14 +81,14 @@ class TenantIsolationTest extends TestCase
     {
         Sanctum::actingAs($this->userA);
 
-        $this->patchJson("/api/photos/{$this->photoB->id}", ['data' => 'non-una-data'])->assertNotFound();
+        $this->patchJson("/api/photos/{$this->photoB->ulid}", ['data' => 'non-una-data'])->assertNotFound();
     }
 
     public function test_user_cannot_delete_a_photo_of_another_family(): void
     {
         Sanctum::actingAs($this->userA);
 
-        $this->deleteJson("/api/photos/{$this->photoB->id}")->assertNotFound();
+        $this->deleteJson("/api/photos/{$this->photoB->ulid}")->assertNotFound();
 
         $this->assertModelExists($this->photoB);
         Storage::disk('r2')->assertExists($this->photoB->image_path);
@@ -101,14 +101,14 @@ class TenantIsolationTest extends TestCase
 
         Sanctum::actingAs($this->userA);
 
-        $this->getJson("/api/photos/{$first->id}")
+        $this->getJson("/api/photos/{$first->ulid}")
             ->assertOk()
             ->assertJsonPath('data.precedente', null)
-            ->assertJsonPath('data.successiva.id', $third->id);
+            ->assertJsonPath('data.successiva.id', $third->ulid);
 
-        $this->getJson("/api/photos/{$third->id}")
+        $this->getJson("/api/photos/{$third->ulid}")
             ->assertOk()
-            ->assertJsonPath('data.precedente.id', $first->id)
+            ->assertJsonPath('data.precedente.id', $first->ulid)
             ->assertJsonPath('data.successiva', null);
     }
 
@@ -122,7 +122,7 @@ class TenantIsolationTest extends TestCase
             'family_id' => $this->familyB->id,
         ])->assertCreated();
 
-        $photo = Photo::findOrFail($response->json('data.id'));
+        $photo = Photo::where('ulid', $response->json('data.id'))->firstOrFail();
 
         $this->assertSame($this->familyA->id, $photo->family_id);
         $this->assertStringStartsWith("families/{$this->familyA->id}/", $photo->image_path);
@@ -138,6 +138,6 @@ class TenantIsolationTest extends TestCase
         $this->getJson('/api/photos')
             ->assertOk()
             ->assertJsonCount(1, 'data')
-            ->assertJsonPath('data.0.id', $this->photoB->id);
+            ->assertJsonPath('data.0.id', $this->photoB->ulid);
     }
 }

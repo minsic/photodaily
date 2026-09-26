@@ -77,7 +77,7 @@ class InviteController extends Controller
 
         return response()->json([
             'data' => [
-                'id' => $invite->id,
+                'id' => $invite->ulid,
                 'email' => $invite->email,
                 'expires_at' => $invite->expires_at,
                 // Utile all'admin per condividere il link anche fuori dall'email.

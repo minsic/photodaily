@@ -66,7 +66,7 @@ class ThumbnailsTest extends TestCase
         $this->assertNotEmpty($list->json('data.0.thumbnail_url'));
         $this->assertArrayNotHasKey('image_url', $list->json('data.0'));
 
-        $detail = $this->getJson("/api/photos/{$photo->id}")->assertOk();
+        $detail = $this->getJson("/api/photos/{$photo->ulid}")->assertOk();
 
         $this->assertNotEmpty($detail->json('data.thumbnail_url'));
         $this->assertNotEmpty($detail->json('data.image_url'));
@@ -91,7 +91,7 @@ class ThumbnailsTest extends TestCase
 
         $photo = Photo::sole();
 
-        $this->deleteJson("/api/photos/{$photo->id}")->assertNoContent();
+        $this->deleteJson("/api/photos/{$photo->ulid}")->assertNoContent();
 
         Storage::disk('r2')->assertMissing($photo->image_path);
         Storage::disk('r2')->assertMissing($photo->thumbnail_path);

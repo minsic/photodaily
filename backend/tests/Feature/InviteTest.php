@@ -65,11 +65,11 @@ class InviteTest extends TestCase
         $response = $this->getJson('/api/invites')->assertOk();
 
         $this->assertEqualsCanonicalizing(
-            [$pending->id, $accepted->id, $expired->id],
+            [$pending->ulid, $accepted->ulid, $expired->ulid],
             $response->json('data.*.id'),
             'Gli inviti delle altre famiglie non compaiono.',
         );
-        $this->assertNotContains($altrui->id, $response->json('data.*.id'));
+        $this->assertNotContains($altrui->ulid, $response->json('data.*.id'));
 
         $byEmail = collect($response->json('data'))->keyBy('email');
         $this->assertSame('pendente', $byEmail['nonna@example.com']['stato']);
@@ -90,7 +90,7 @@ class InviteTest extends TestCase
         Sanctum::actingAs(User::factory()->for($family)->create());
 
         $this->getJson('/api/invites')->assertForbidden();
-        $this->deleteJson("/api/invites/{$invite->id}")->assertForbidden();
+        $this->deleteJson("/api/invites/{$invite->ulid}")->assertForbidden();
 
         $this->assertModelExists($invite);
     }
@@ -102,7 +102,7 @@ class InviteTest extends TestCase
 
         Sanctum::actingAs(User::factory()->admin()->for($family)->create());
 
-        $this->deleteJson("/api/invites/{$invite->id}")->assertNoContent();
+        $this->deleteJson("/api/invites/{$invite->ulid}")->assertNoContent();
 
         $this->assertModelMissing($invite);
         $this->getJson('/api/invites/token-segreto')->assertNotFound();
@@ -115,7 +115,7 @@ class InviteTest extends TestCase
 
         Sanctum::actingAs(User::factory()->admin()->for($family)->create());
 
-        $this->deleteJson("/api/invites/{$invite->id}")
+        $this->deleteJson("/api/invites/{$invite->ulid}")
             ->assertUnprocessable()
             ->assertJsonPath('message', 'Questo invito è già stato accettato.');
 
@@ -128,7 +128,7 @@ class InviteTest extends TestCase
 
         Sanctum::actingAs(User::factory()->admin()->create());
 
-        $this->deleteJson("/api/invites/{$invite->id}")->assertNotFound();
+        $this->deleteJson("/api/invites/{$invite->ulid}")->assertNotFound();
 
         $this->assertModelExists($invite);
     }

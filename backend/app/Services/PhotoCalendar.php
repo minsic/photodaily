@@ -20,8 +20,8 @@ class PhotoCalendar
      *     oggi: string,
      *     inizio: string|null,
      *     fine: string|null,
-     *     giorni: list<array{data: string, foto_id: int, foto: int, speciale: bool}>,
-     *     bozze: list<array{data: string, foto_id: int}>,
+     *     giorni: list<array{data: string, foto_id: string, foto: int, speciale: bool}>,
+     *     bozze: list<array{data: string, foto_id: string}>,
      *     vuoti: list<string>,
      *     pieni: int,
      *     totali: int
@@ -37,19 +37,19 @@ class PhotoCalendar
             ->whereBetween('data', [$from, $to])
             ->orderBy('data')
             ->orderByDesc('id')
-            ->get(['id', 'data', 'is_draft', 'data_speciale']);
+            ->get(['id', 'ulid', 'data', 'is_draft', 'data_speciale']);
 
         // Per ogni giorno si apre la foto più recente; si conta quante ce ne sono.
         $days = $photos->where('is_draft', false)->groupBy(fn (Photo $photo) => $this->day($photo->data))
             ->map(fn ($group, string $day) => [
                 'data' => $day,
-                'foto_id' => $group->first()->id,
+                'foto_id' => $group->first()->ulid,
                 'foto' => $group->count(),
                 'speciale' => $group->contains('data_speciale', true),
             ]);
 
         $drafts = $photos->where('is_draft', true)->groupBy(fn (Photo $photo) => $this->day($photo->data))
-            ->map(fn ($group, string $day) => ['data' => $day, 'foto_id' => $group->first()->id]);
+            ->map(fn ($group, string $day) => ['data' => $day, 'foto_id' => $group->first()->ulid]);
 
         [$start, $end] = $this->range($family, $from, min($to, $today));
         $empty = [];

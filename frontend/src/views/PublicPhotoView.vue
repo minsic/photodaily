@@ -15,7 +15,7 @@ import { formatLongDate, formatShortDate } from '@/utils/date'
 import { canRetrySignedUrl } from '@/utils/signedUrls'
 
 /** Dettaglio in sola lettura: nessuna azione di modifica o cancellazione. */
-const props = defineProps<{ slug: string; id: number }>()
+const props = defineProps<{ slug: string; id: string }>()
 
 const diary = usePublicDiaryStore()
 const router = useRouter()
@@ -41,7 +41,7 @@ const altText = computed(() =>
     : '',
 )
 
-async function load(id: number): Promise<void> {
+async function load(id: string): Promise<void> {
   if (diary.slug !== props.slug) {
     await diary.open(props.slug)
   }
@@ -79,7 +79,7 @@ async function onImageError(): Promise<void> {
   }
 }
 
-function goTo(id: number | undefined): void {
+function goTo(id: string | undefined): void {
   if (id) {
     void router.replace({ name: 'public-photo', params: { slug: props.slug, id } })
   }

@@ -42,7 +42,7 @@ class PublicAccessTest extends TestCase
             'Una famiglia privata deve rispondere come una famiglia inesistente.',
         );
 
-        $this->getJson("/api/public/giopellino/photos/{$photo->id}")->assertNotFound();
+        $this->getJson("/api/public/giopellino/photos/{$photo->ulid}")->assertNotFound();
         $this->postJson('/api/public/giopellino/verify-password', ['password' => self::PASSWORD])->assertNotFound();
     }
 
@@ -55,20 +55,34 @@ class PublicAccessTest extends TestCase
 
         $response = $this->getJson('/api/public/giopellino/photos')->assertOk();
 
-        $this->assertSame([$second->id, $first->id], $response->json('data.*.id'));
+        $this->assertSame([$second->ulid, $first->ulid], $response->json('data.*.id'));
         $this->assertNotEmpty($response->json('data.0.thumbnail_url'));
         $this->assertArrayNotHasKey('uploaded_by', $response->json('data.0'));
 
         $this->getJson('/api/public/giopellino/photos?anno=2024&speciali=1')
-            ->assertJsonPath('data.*.id', [$second->id]);
+            ->assertJsonPath('data.*.id', [$second->ulid]);
 
-        $this->getJson("/api/public/giopellino/photos/{$first->id}")
+        $this->getJson("/api/public/giopellino/photos/{$first->ulid}")
             ->assertOk()
-            ->assertJsonPath('data.id', $first->id)
-            ->assertJsonPath('data.successiva.id', $second->id)
+            ->assertJsonPath('data.id', $first->ulid)
+            ->assertJsonPath('data.successiva.id', $second->ulid)
             ->assertJsonPath('data.precedente', null);
 
-        $this->getJson("/api/public/giopellino/photos/{$otherFamilyPhoto->id}")->assertNotFound();
+        $this->getJson("/api/public/giopellino/photos/{$otherFamilyPhoto->ulid}")->assertNotFound();
+    }
+
+    public function test_photos_are_addressed_only_by_ulid_never_by_numeric_id(): void
+    {
+        $family = $this->family(AccessMode::Public);
+        $photo = Photo::factory()->for($family)->create();
+
+        $this->assertMatchesRegularExpression('/^[0-9a-z]{26}$/', $photo->ulid);
+
+        $this->getJson("/api/public/giopellino/photos/{$photo->id}")->assertNotFound();
+
+        Sanctum::actingAs(User::factory()->for($family)->create());
+        $this->getJson("/api/photos/{$photo->id}")->assertNotFound();
+        $this->getJson("/api/photos/{$photo->ulid}")->assertOk()->assertJsonPath('data.id', $photo->ulid);
     }
 
     #[DataProvider('publicReadableModes')]
@@ -82,13 +96,13 @@ class PublicAccessTest extends TestCase
         foreach (['', '?stato=tutte', '?stato=bozze'] as $query) {
             $this->getJson("/api/public/giopellino/photos{$query}", $headers)
                 ->assertOk()
-                ->assertJsonPath('data.*.id', [$published->id]);
+                ->assertJsonPath('data.*.id', [$published->ulid]);
         }
 
-        $this->getJson("/api/public/giopellino/photos/{$draft->id}", $headers)->assertNotFound();
+        $this->getJson("/api/public/giopellino/photos/{$draft->ulid}", $headers)->assertNotFound();
 
         // La bozza non compare nemmeno nella navigazione.
-        $this->getJson("/api/public/giopellino/photos/{$published->id}", $headers)
+        $this->getJson("/api/public/giopellino/photos/{$published->ulid}", $headers)
             ->assertOk()
             ->assertJsonPath('data.successiva', null);
     }
@@ -130,13 +144,13 @@ class PublicAccessTest extends TestCase
         $photo = Photo::factory()->for($family)->create();
 
         $this->postJson('/api/public/giopellino/photos', ['data' => '2024-05-01'])->assertMethodNotAllowed();
-        $this->patchJson("/api/public/giopellino/photos/{$photo->id}", ['didascalia' => 'x'])->assertMethodNotAllowed();
-        $this->deleteJson("/api/public/giopellino/photos/{$photo->id}")->assertMethodNotAllowed();
+        $this->patchJson("/api/public/giopellino/photos/{$photo->ulid}", ['didascalia' => 'x'])->assertMethodNotAllowed();
+        $this->deleteJson("/api/public/giopellino/photos/{$photo->ulid}")->assertMethodNotAllowed();
 
         // Le rotte di scrittura restano quelle autenticate.
         $this->postJson('/api/photos', ['data' => '2024-05-01'])->assertUnauthorized();
-        $this->patchJson("/api/photos/{$photo->id}", ['didascalia' => 'x'])->assertUnauthorized();
-        $this->deleteJson("/api/photos/{$photo->id}")->assertUnauthorized();
+        $this->patchJson("/api/photos/{$photo->ulid}", ['didascalia' => 'x'])->assertUnauthorized();
+        $this->deleteJson("/api/photos/{$photo->ulid}")->assertUnauthorized();
 
         $this->assertNotSame('x', $photo->fresh()->didascalia, 'La didascalia non deve essere cambiata.');
         $this->assertModelExists($photo);
@@ -148,7 +162,7 @@ class PublicAccessTest extends TestCase
         $photo = Photo::factory()->for($family)->create();
 
         $this->getJson('/api/public/giopellino/photos')->assertUnauthorized();
-        $this->getJson("/api/public/giopellino/photos/{$photo->id}")->assertUnauthorized();
+        $this->getJson("/api/public/giopellino/photos/{$photo->ulid}")->assertUnauthorized();
         $this->getJson('/api/public/giopellino/photos', ['Authorization' => 'Bearer non-valido'])->assertUnauthorized();
 
         $this->postJson('/api/public/giopellino/verify-password', ['password' => 'sbagliata'])->assertUnauthorized();
@@ -163,13 +177,13 @@ class PublicAccessTest extends TestCase
 
         $this->getJson('/api/public/giopellino/photos', ['Authorization' => "Bearer {$token}"])
             ->assertOk()
-            ->assertJsonPath('data.*.id', [$photo->id]);
+            ->assertJsonPath('data.*.id', [$photo->ulid]);
 
         $this->getJson("/api/public/giopellino/photos?access_token={$token}")
             ->assertOk()
-            ->assertJsonPath('data.*.id', [$photo->id]);
+            ->assertJsonPath('data.*.id', [$photo->ulid]);
 
-        $this->getJson("/api/public/giopellino/photos/{$photo->id}?access_token={$token}")->assertOk();
+        $this->getJson("/api/public/giopellino/photos/{$photo->ulid}?access_token={$token}")->assertOk();
     }
 
     public function test_read_token_works_only_for_its_own_family(): void
@@ -209,13 +223,13 @@ class PublicAccessTest extends TestCase
 
         $this->withToken($token)->getJson('/api/me')->assertUnauthorized();
         $this->withToken($token)->getJson('/api/photos')->assertUnauthorized();
-        $this->withToken($token)->getJson("/api/photos/{$photo->id}")->assertUnauthorized();
+        $this->withToken($token)->getJson("/api/photos/{$photo->ulid}")->assertUnauthorized();
         $this->withToken($token)->postJson('/api/photos', [
             'image' => UploadedFile::fake()->image('foto.jpg'),
             'data' => '2024-05-01',
         ])->assertUnauthorized();
-        $this->withToken($token)->patchJson("/api/photos/{$photo->id}", ['didascalia' => 'x'])->assertUnauthorized();
-        $this->withToken($token)->deleteJson("/api/photos/{$photo->id}")->assertUnauthorized();
+        $this->withToken($token)->patchJson("/api/photos/{$photo->ulid}", ['didascalia' => 'x'])->assertUnauthorized();
+        $this->withToken($token)->deleteJson("/api/photos/{$photo->ulid}")->assertUnauthorized();
         $this->withToken($token)->postJson('/api/invites', ['email' => 'zia@example.com'])->assertUnauthorized();
         $this->withToken($token)->patchJson('/api/family/access-mode', ['access_mode' => 'public'])->assertUnauthorized();
 

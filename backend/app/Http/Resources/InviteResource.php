@@ -19,7 +19,7 @@ class InviteResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
-            'id' => $this->id,
+            'id' => $this->ulid,
             'email' => $this->email,
             'stato' => $this->status(),
             'expires_at' => $this->expires_at,

@@ -17,7 +17,7 @@ import { captionToPlainText } from '@/utils/caption'
 import { formatLongDate, formatShortDate } from '@/utils/date'
 import { canRetrySignedUrl } from '@/utils/signedUrls'
 
-const props = defineProps<{ id: number }>()
+const props = defineProps<{ id: string }>()
 
 const store = usePhotosStore()
 const toasts = useToastsStore()
@@ -45,7 +45,7 @@ const altText = computed(() =>
     : '',
 )
 
-async function load(id: number): Promise<void> {
+async function load(id: string): Promise<void> {
   // La foto già in elenco si mostra subito; la richiesta serve per
   // precedente/successiva e per un URL firmato fresco.
   const cached = store.find(id)
@@ -105,7 +105,7 @@ async function remove(): Promise<void> {
   }
 }
 
-function goTo(id: number | undefined): void {
+function goTo(id: string | undefined): void {
   if (id) {
     void router.replace({ name: 'photo', params: { id } })
   }

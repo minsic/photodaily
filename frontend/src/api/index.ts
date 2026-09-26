@@ -87,7 +87,7 @@ export const photos = {
     )
   },
 
-  get(id: number) {
+  get(id: string) {
     return api<{ data: Photo }>(`/photos/${id}`).then((response) => response.data)
   },
 
@@ -106,13 +106,13 @@ export const photos = {
     return api<{ data: Photo }>('/photos', { method: 'POST', body: form }).then((response) => response.data)
   },
 
-  update(id: number, payload: Partial<PhotoPayload>) {
+  update(id: string, payload: Partial<PhotoPayload>) {
     return api<{ data: Photo }>(`/photos/${id}`, { method: 'PATCH', body: payload }).then(
       (response) => response.data,
     )
   },
 
-  remove(id: number) {
+  remove(id: string) {
     return api<void>(`/photos/${id}`, { method: 'DELETE' })
   },
 }
@@ -128,7 +128,7 @@ export const invites = {
     )
   },
 
-  revoke(id: number) {
+  revoke(id: string) {
     return api<void>(`/invites/${id}`, { method: 'DELETE' })
   },
 
@@ -200,7 +200,7 @@ export const publicDiary = {
     })
   },
 
-  get(slug: string, token: string | null, id: number) {
+  get(slug: string, token: string | null, id: string) {
     return api<{ data: Photo }>(`/public/${encodeURIComponent(slug)}/photos/${id}`, { token }).then(
       (response) => response.data,
     )

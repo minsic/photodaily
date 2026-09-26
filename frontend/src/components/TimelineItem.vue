@@ -15,7 +15,7 @@ const props = defineProps<{
   /** Dove porta la foto: la timeline pubblica usa le proprie rotte. */
   to?: RouteLocationRaw
   /** Chiede URL nuovi per questa foto: la timeline pubblica usa la propria API. */
-  refresh?: (id: number) => Promise<void>
+  refresh?: (id: string) => Promise<void>
   /** Per scrivere l'età sotto la data. */
   protagonist?: Protagonist | null
 }>()

@@ -117,7 +117,7 @@ class MediumImagesTest extends TestCase
         $this->assertSame([1400, 1050], [$item['medium_width'], $item['medium_height']]);
         $this->assertArrayNotHasKey('image_url', $item);
 
-        $detail = $this->getJson("/api/photos/{$photo->id}")->assertOk()->json('data');
+        $detail = $this->getJson("/api/photos/{$photo->ulid}")->assertOk()->json('data');
         $this->assertStringContainsString('/medium/', $detail['medium_url']);
         $this->assertNotEmpty($detail['image_url']);
     }
@@ -138,7 +138,7 @@ class MediumImagesTest extends TestCase
 
         $photo = Photo::sole();
 
-        $this->deleteJson("/api/photos/{$photo->id}")->assertNoContent();
+        $this->deleteJson("/api/photos/{$photo->ulid}")->assertNoContent();
 
         Storage::disk('r2')->assertMissing($photo->medium_path);
     }

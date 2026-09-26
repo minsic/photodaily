@@ -13,7 +13,7 @@ export interface CalendarDay {
   date: string
   day: number
   state: DayState
-  photoId: number | null
+  photoId: string | null
   photos: number
   special: boolean
 }

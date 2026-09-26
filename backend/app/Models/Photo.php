@@ -5,6 +5,7 @@ namespace App\Models;
 use Database\Factories\PhotoFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -19,7 +20,22 @@ use Illuminate\Support\Collection;
 class Photo extends Model
 {
     /** @use HasFactory<PhotoFactory> */
-    use HasFactory;
+    use HasFactory, HasUlids;
+
+    /**
+     * L'ULID è l'identificativo pubblico (URL e API); l'id numerico resta interno.
+     *
+     * @return list<string>
+     */
+    public function uniqueIds(): array
+    {
+        return ['ulid'];
+    }
+
+    public function getRouteKeyName(): string
+    {
+        return 'ulid';
+    }
 
     /**
      * @var array<string, mixed>
@@ -79,7 +95,7 @@ class Photo extends Model
                 ->orWhere(fn (Builder $query) => $query->where('data', $this->data)->where('id', '<', $this->id)))
             ->orderByDesc('data')
             ->orderByDesc('id')
-            ->first(['id', 'data']);
+            ->first(['id', 'ulid', 'data']);
     }
 
     /**
@@ -93,7 +109,7 @@ class Photo extends Model
                 ->orWhere(fn (Builder $query) => $query->where('data', $this->data)->where('id', '>', $this->id)))
             ->orderBy('data')
             ->orderBy('id')
-            ->first(['id', 'data']);
+            ->first(['id', 'ulid', 'data']);
     }
 
     /**

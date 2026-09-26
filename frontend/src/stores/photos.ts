@@ -104,7 +104,7 @@ export const usePhotosStore = defineStore('photos', () => {
     stato.value = value
   }
 
-  function find(id: number): Photo | undefined {
+  function find(id: string): Photo | undefined {
     return items.value.find((photo) => photo.id === id)
   }
 
@@ -132,7 +132,7 @@ export const usePhotosStore = defineStore('photos', () => {
     }
   }
 
-  function drop(id: number): void {
+  function drop(id: string): void {
     items.value = items.value.filter((photo) => photo.id !== id)
   }
 
@@ -140,7 +140,7 @@ export const usePhotosStore = defineStore('photos', () => {
    * Gli URL delle immagini sono firmati e scadono: quando il browser non
    * riesce più a caricarne una, si richiede la foto per avere un URL nuovo.
    */
-  async function refreshImage(id: number): Promise<void> {
+  async function refreshImage(id: string): Promise<void> {
     const fresh = await photosApi.get(id).catch(() => null)
 
     if (!fresh) {

@@ -51,7 +51,8 @@ class PhotoResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
-            'id' => $this->id,
+            // Identificativo pubblico: l'id numerico non esce dal backend.
+            'id' => $this->ulid,
             'data' => $this->data,
             'data_speciale' => $this->data_speciale,
             'didascalia' => $this->didascalia,
@@ -81,10 +82,10 @@ class PhotoResource extends JsonResource
     }
 
     /**
-     * @return array{id: int, data: string}|null
+     * @return array{id: string, data: string}|null
      */
     private function navigationLink(?Photo $photo): ?array
     {
-        return $photo ? ['id' => $photo->id, 'data' => $photo->data] : null;
+        return $photo ? ['id' => $photo->ulid, 'data' => $photo->data] : null;
     }
 }

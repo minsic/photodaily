@@ -48,16 +48,17 @@ const router = createRouter({
       component: () => import('@/views/RecoverView.vue'),
     },
     {
-      path: '/foto/:id(\\d+)',
+      // L'id della foto è un ULID: i vecchi link numerici finiscono nel 404.
+      path: '/foto/:id([0-9A-Za-z]{26})',
       name: 'photo',
       component: () => import('@/views/PhotoView.vue'),
-      props: (route) => ({ id: Number(route.params.id) }),
+      props: (route) => ({ id: String(route.params.id) }),
     },
     {
-      path: '/foto/:id(\\d+)/modifica',
+      path: '/foto/:id([0-9A-Za-z]{26})/modifica',
       name: 'photo-edit',
       component: () => import('@/views/EditPhotoView.vue'),
-      props: (route) => ({ id: Number(route.params.id) }),
+      props: (route) => ({ id: String(route.params.id) }),
     },
     {
       path: '/impostazioni',
@@ -82,10 +83,10 @@ const router = createRouter({
       meta: { guest: true },
     },
     {
-      path: '/pub/:slug/foto/:id(\\d+)',
+      path: '/pub/:slug/foto/:id([0-9A-Za-z]{26})',
       name: 'public-photo',
       component: () => import('@/views/PublicPhotoView.vue'),
-      props: (route) => ({ slug: String(route.params.slug), id: Number(route.params.id) }),
+      props: (route) => ({ slug: String(route.params.slug), id: String(route.params.id) }),
       meta: { guest: true },
     },
     {

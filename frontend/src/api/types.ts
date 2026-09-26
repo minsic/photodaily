@@ -59,12 +59,14 @@ export interface User {
 }
 
 export interface PhotoLink {
-  id: number
+  /** ULID: l'id numerico resta nel backend. */
+  id: string
   data: string
 }
 
 export interface Photo {
-  id: number
+  /** ULID: l'id numerico resta nel backend. */
+  id: string
   /** Data della foto, in formato YYYY-MM-DD. */
   data: string
   data_speciale: boolean
@@ -114,7 +116,8 @@ export interface LoginResponse {
 export type InviteStatus = 'pendente' | 'accettato' | 'scaduto'
 
 export interface Invite {
-  id: number
+  /** ULID: l'id numerico resta nel backend. */
+  id: string
   email: string
   stato: InviteStatus
   expires_at: string
@@ -124,7 +127,8 @@ export interface Invite {
 
 /** Risposta alla creazione di un invito: include il link da condividere. */
 export interface CreatedInvite {
-  id: number
+  /** ULID: l'id numerico resta nel backend. */
+  id: string
   email: string
   expires_at: string
   url: string
@@ -166,8 +170,8 @@ export interface PhotoCalendar {
   /** Primo e ultimo giorno che "dovrebbero" avere una foto (null se nessuno). */
   inizio: string | null
   fine: string | null
-  giorni: { data: string; foto_id: number; foto: number; speciale: boolean }[]
-  bozze: { data: string; foto_id: number }[]
+  giorni: { data: string; foto_id: string; foto: number; speciale: boolean }[]
+  bozze: { data: string; foto_id: string }[]
   vuoti: string[]
   pieni: number
   totali: number

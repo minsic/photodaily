@@ -135,7 +135,7 @@ export const usePublicDiaryStore = defineStore('public-diary', () => {
   }
 
   /** Come nella timeline privata: URL nuovi per una foto la cui immagine non si carica più. */
-  async function refreshImage(id: number): Promise<void> {
+  async function refreshImage(id: string): Promise<void> {
     const fresh = await publicApi.get(slug.value, token.value, id).catch(() => null)
     const index = items.value.findIndex((item) => item.id === id)
 
@@ -159,11 +159,11 @@ export const usePublicDiaryStore = defineStore('public-diary', () => {
     void load()
   }
 
-  function find(id: number): Photo | undefined {
+  function find(id: string): Photo | undefined {
     return items.value.find((photo) => photo.id === id)
   }
 
-  function photo(id: number): Promise<Photo> {
+  function photo(id: string): Promise<Photo> {
     return publicApi.get(slug.value, token.value, id)
   }
 

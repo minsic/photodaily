@@ -51,7 +51,7 @@ class PhotoCrudTest extends TestCase
             ->assertJsonPath('data.height', 600)
             ->assertJsonPath('data.uploaded_by', $this->user->id);
 
-        $photo = Photo::findOrFail($response->json('data.id'));
+        $photo = Photo::where('ulid', $response->json('data.id'))->firstOrFail();
 
         Storage::disk('r2')->assertExists($photo->image_path);
         $this->assertSame($image->getSize(), $photo->size_bytes);
@@ -75,19 +75,19 @@ class PhotoCrudTest extends TestCase
 
         $this->getJson('/api/photos')
             ->assertOk()
-            ->assertJsonPath('data.*.id', [$plain2024->id, $special2024->id, $published2023->id]);
+            ->assertJsonPath('data.*.id', [$plain2024->ulid, $special2024->ulid, $published2023->ulid]);
 
         $this->getJson('/api/photos?anno=2024')
-            ->assertJsonPath('data.*.id', [$plain2024->id, $special2024->id]);
+            ->assertJsonPath('data.*.id', [$plain2024->ulid, $special2024->ulid]);
 
         $this->getJson('/api/photos?speciali=1')
-            ->assertJsonPath('data.*.id', [$special2024->id]);
+            ->assertJsonPath('data.*.id', [$special2024->ulid]);
 
         $this->getJson('/api/photos?stato=bozze')
-            ->assertJsonPath('data.*.id', [$draft->id]);
+            ->assertJsonPath('data.*.id', [$draft->ulid]);
 
         $this->getJson('/api/photos?ordine=asc&per_page=2')
-            ->assertJsonPath('data.*.id', [$published2023->id, $special2024->id])
+            ->assertJsonPath('data.*.id', [$published2023->ulid, $special2024->ulid])
             ->assertJsonPath('meta.total', 3);
     }
 
@@ -98,12 +98,12 @@ class PhotoCrudTest extends TestCase
         $next = Photo::factory()->for($this->family)->create(['data' => '2024-05-03']);
         Photo::factory()->for($this->family)->draft()->create(['data' => '2024-05-04']);
 
-        $this->getJson("/api/photos/{$photo->id}")
+        $this->getJson("/api/photos/{$photo->ulid}")
             ->assertOk()
-            ->assertJsonPath('data.precedente', ['id' => $previous->id, 'data' => '2024-05-01'])
-            ->assertJsonPath('data.successiva', ['id' => $next->id, 'data' => '2024-05-03']);
+            ->assertJsonPath('data.precedente', ['id' => $previous->ulid, 'data' => '2024-05-01'])
+            ->assertJsonPath('data.successiva', ['id' => $next->ulid, 'data' => '2024-05-03']);
 
-        $this->getJson("/api/photos/{$next->id}")
+        $this->getJson("/api/photos/{$next->ulid}")
             ->assertJsonPath('data.successiva', null);
     }
 
@@ -111,7 +111,7 @@ class PhotoCrudTest extends TestCase
     {
         $photo = Photo::factory()->for($this->family)->draft()->create(['data' => '2024-05-01']);
 
-        $this->patchJson("/api/photos/{$photo->id}", [
+        $this->patchJson("/api/photos/{$photo->ulid}", [
             'data' => '2024-05-02',
             'didascalia' => 'Nuova didascalia',
             'data_speciale' => true,
@@ -132,11 +132,11 @@ class PhotoCrudTest extends TestCase
         $first = Photo::factory()->for($this->family)->create(['image_path' => $shared, 'data' => '2024-05-01']);
         $second = Photo::factory()->for($this->family)->create(['image_path' => $shared, 'data' => '2024-05-02']);
 
-        $this->deleteJson("/api/photos/{$first->id}")->assertNoContent();
+        $this->deleteJson("/api/photos/{$first->ulid}")->assertNoContent();
 
         Storage::disk('r2')->assertExists($shared);
 
-        $this->deleteJson("/api/photos/{$second->id}")->assertNoContent();
+        $this->deleteJson("/api/photos/{$second->ulid}")->assertNoContent();
 
         Storage::disk('r2')->assertMissing($shared);
     }
@@ -164,9 +164,9 @@ class PhotoCrudTest extends TestCase
             'data' => '2024-05-01',
         ])->assertCreated();
 
-        $photo = Photo::findOrFail($response->json('data.id'));
+        $photo = Photo::where('ulid', $response->json('data.id'))->firstOrFail();
 
-        $this->deleteJson("/api/photos/{$photo->id}")->assertNoContent();
+        $this->deleteJson("/api/photos/{$photo->ulid}")->assertNoContent();
 
         $this->assertModelMissing($photo);
         Storage::disk('r2')->assertMissing($photo->image_path);

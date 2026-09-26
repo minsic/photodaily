@@ -28,7 +28,8 @@ class CrossFamilyAccessTest extends TestCase
 {
     use RefreshDatabase;
 
-    private const MISSING_ID = 999999;
+    // ULID ben formato che non corrisponde a nessuna riga.
+    private const MISSING_ID = '01k00000000000000000000000';
 
     private Family $familyA;
 
@@ -117,7 +118,7 @@ class CrossFamilyAccessTest extends TestCase
 
         foreach (['GET', 'PUT', 'PATCH', 'DELETE'] as $method) {
             $this->assertSameAsMissing(
-                $this->json($method, "{$host}/api/photos/{$this->photoB->id}", $payload),
+                $this->json($method, "{$host}/api/photos/{$this->photoB->ulid}", $payload),
                 $this->json($method, "{$host}/api/photos/".self::MISSING_ID, $payload),
                 "{$method} photos/{id}",
             );
@@ -138,7 +139,7 @@ class CrossFamilyAccessTest extends TestCase
         // risposta (405) per un invito di B e per uno che non esiste.
         foreach (['GET', 'PUT', 'DELETE'] as $method) {
             $this->assertSameAsMissing(
-                $this->json($method, "{$host}/api/invites/{$this->inviteB->id}", ['email' => 'x@example.com']),
+                $this->json($method, "{$host}/api/invites/{$this->inviteB->ulid}", ['email' => 'x@example.com']),
                 $this->json($method, "{$host}/api/invites/".self::MISSING_ID, ['email' => 'x@example.com']),
                 "{$method} invites/{id}",
             );
@@ -213,13 +214,13 @@ class CrossFamilyAccessTest extends TestCase
             ['GET', '/api/me'],
             ['GET', '/api/photos'],
             ['GET', '/api/photos/anni'],
-            ['GET', "/api/photos/{$this->photoB->id}"],
-            ['PUT', "/api/photos/{$this->photoB->id}"],
-            ['DELETE', "/api/photos/{$this->photoB->id}"],
+            ['GET', "/api/photos/{$this->photoB->ulid}"],
+            ['PUT', "/api/photos/{$this->photoB->ulid}"],
+            ['DELETE', "/api/photos/{$this->photoB->ulid}"],
             ['POST', '/api/photos'],
             ['GET', '/api/invites'],
             ['POST', '/api/invites'],
-            ['DELETE', "/api/invites/{$this->inviteB->id}"],
+            ['DELETE', "/api/invites/{$this->inviteB->ulid}"],
             ['PATCH', '/api/family/access-mode'],
         ];
 
@@ -241,14 +242,14 @@ class CrossFamilyAccessTest extends TestCase
         $this->familyA->changeAccessMode(AccessMode::Public);
 
         $this->assertSameAsMissing(
-            $this->getJson("/api/public/famiglia-a/photos/{$this->photoB->id}"),
+            $this->getJson("/api/public/famiglia-a/photos/{$this->photoB->ulid}"),
             $this->getJson('/api/public/famiglia-a/photos/'.self::MISSING_ID),
             'GET public/A/photos/{id di B}',
         );
 
         $this->getJson('/api/public/famiglia-a/photos')
             ->assertOk()
-            ->assertJsonMissing(['id' => $this->photoB->id]);
+            ->assertJsonMissing(['id' => $this->photoB->ulid]);
     }
 
     #[DataProvider('accessModes')]
@@ -258,7 +259,7 @@ class CrossFamilyAccessTest extends TestCase
         $this->familyA->changeAccessMode(AccessMode::Password, 'password-di-a');
         [$tokenA] = app(FamilyReadTokens::class)->issue($this->familyA->fresh());
 
-        $response = $this->withToken($tokenA)->getJson("/api/public/famiglia-b/photos/{$this->photoB->id}");
+        $response = $this->withToken($tokenA)->getJson("/api/public/famiglia-b/photos/{$this->photoB->ulid}");
 
         match ($mode) {
             // Privata: la stessa risposta di una famiglia inesistente.
@@ -270,7 +271,7 @@ class CrossFamilyAccessTest extends TestCase
         };
 
         // Il token di sola lettura non apre in nessun caso le rotte autenticate.
-        $this->withToken($tokenA)->getJson("/api/photos/{$this->photoB->id}")->assertUnauthorized();
+        $this->withToken($tokenA)->getJson("/api/photos/{$this->photoB->ulid}")->assertUnauthorized();
     }
 
     private function setModeOfB(string $mode): void
@@ -290,7 +291,7 @@ class CrossFamilyAccessTest extends TestCase
         $this->assertContains($missing->status(), [404, 405], "{$what}: su un ID inesistente ci si aspetta 404 o 405.");
         $this->assertSame($missing->status(), $other->status(), "{$what}: lo stato rivela che la risorsa esiste.");
         // Il 405 ripete l'URL richiesto: si confronta il messaggio a meno dell'ID.
-        $withoutId = fn (TestResponse $response) => preg_replace('~/\d+\b~', '/{id}', (string) $response->json('message'));
+        $withoutId = fn (TestResponse $response) => preg_replace('~/[0-9a-z]{26}\b~', '/{id}', (string) $response->json('message'));
 
         $this->assertSame(
             $withoutId($missing),

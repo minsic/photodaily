@@ -12,7 +12,7 @@ import PhotoForm from '@/components/PhotoForm.vue'
 import { usePhotosStore } from '@/stores/photos'
 import { useToastsStore } from '@/stores/toasts'
 
-const props = defineProps<{ id: number }>()
+const props = defineProps<{ id: string }>()
 
 const store = usePhotosStore()
 const toasts = useToastsStore()

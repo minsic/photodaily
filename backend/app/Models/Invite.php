@@ -6,6 +6,7 @@ use Database\Factories\InviteFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -15,7 +16,22 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class Invite extends Model
 {
     /** @use HasFactory<InviteFactory> */
-    use HasFactory;
+    use HasFactory, HasUlids;
+
+    /**
+     * L'ULID è l'identificativo pubblico (URL e API); l'id numerico resta interno.
+     *
+     * @return list<string>
+     */
+    public function uniqueIds(): array
+    {
+        return ['ulid'];
+    }
+
+    public function getRouteKeyName(): string
+    {
+        return 'ulid';
+    }
 
     public static function hashToken(string $token): string
     {

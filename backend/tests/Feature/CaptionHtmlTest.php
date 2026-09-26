@@ -113,11 +113,11 @@ class CaptionHtmlTest extends TestCase
     {
         $photo = Photo::factory()->for($this->family)->create(['didascalia' => '<p>Vecchia</p>']);
 
-        $this->patchJson("/api/photos/{$photo->id}", [
+        $this->patchJson("/api/photos/{$photo->ulid}", [
             'didascalia' => '<h1>Titolo</h1><p>Nuova</p>',
         ])->assertOk()->assertJsonPath('data.didascalia', 'Titolo<p>Nuova</p>');
 
-        $this->patchJson("/api/photos/{$photo->id}", ['didascalia' => null])
+        $this->patchJson("/api/photos/{$photo->ulid}", ['didascalia' => null])
             ->assertOk()
             ->assertJsonPath('data.didascalia', null);
     }
@@ -131,10 +131,10 @@ class CaptionHtmlTest extends TestCase
         $long = str_repeat('a', CaptionLength::MAX - 200)
             .str_repeat('<strong>parola</strong> <em>corsivo</em> ', 10);
 
-        $this->patchJson("/api/photos/{$photo->id}", ['didascalia' => "<p>{$long}</p>"])
+        $this->patchJson("/api/photos/{$photo->ulid}", ['didascalia' => "<p>{$long}</p>"])
             ->assertOk();
 
-        $this->patchJson("/api/photos/{$photo->id}", [
+        $this->patchJson("/api/photos/{$photo->ulid}", [
             'didascalia' => '<p>'.str_repeat('a', CaptionLength::MAX + 1).'</p>',
         ])->assertUnprocessable()->assertJsonValidationErrors(['didascalia']);
     }

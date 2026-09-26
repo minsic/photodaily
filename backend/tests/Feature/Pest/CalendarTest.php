@@ -39,9 +39,9 @@ it('lists full, empty and draft days from the birth up to today in the family ti
         ->and($calendar['vuoti'])->not->toContain('2026-03-01', '2026-03-03')
         ->and($calendar['vuoti'])->toContain('2026-03-10', '2026-03-15')
         ->and($calendar['giorni'])->toBe([
-            ['data' => '2026-03-01', 'foto_id' => $first->id, 'foto' => 1, 'speciale' => false],
+            ['data' => '2026-03-01', 'foto_id' => $first->ulid, 'foto' => 1, 'speciale' => false],
             // Due foto lo stesso giorno: si apre la più recente, e si dice quante sono.
-            ['data' => '2026-03-03', 'foto_id' => $older->id, 'foto' => 2, 'speciale' => true],
+            ['data' => '2026-03-03', 'foto_id' => $older->ulid, 'foto' => 2, 'speciale' => true],
         ])
         ->and($calendar['bozze'])->toHaveCount(1)
         ->and($calendar['bozze'][0]['data'])->toBe('2026-03-10');

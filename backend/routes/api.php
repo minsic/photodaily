@@ -36,7 +36,7 @@ Route::prefix('public/{family_slug}')->group(function () {
         Route::get('/profilo', [FamilyController::class, 'showPublic']);
         Route::get('/photos', [PublicPhotoController::class, 'index']);
         Route::get('/photos/anni', [PublicPhotoController::class, 'years']);
-        Route::get('/photos/{photo}', [PublicPhotoController::class, 'show'])->whereNumber('photo');
+        Route::get('/photos/{photo}', [PublicPhotoController::class, 'show'])->whereUlid('photo');
     });
 });
 
@@ -52,12 +52,12 @@ Route::middleware(['auth:sanctum', EnsureHostFamilyMember::class])->group(functi
 
     Route::get('/invites', [InviteController::class, 'index']);
     Route::post('/invites', [InviteController::class, 'store']);
-    Route::delete('/invites/{invite}', [InviteController::class, 'destroy'])->whereNumber('invite');
+    Route::delete('/invites/{invite}', [InviteController::class, 'destroy'])->whereUlid('invite');
 
     Route::patch('/family', [FamilyController::class, 'update']);
     Route::patch('/family/access-mode', [FamilyAccessController::class, 'update']);
 
     Route::get('/photos/anni', [PhotoController::class, 'years']);
     Route::get('/photos/calendario', [PhotoController::class, 'calendar']);
-    Route::apiResource('photos', PhotoController::class)->where(['photo' => '[0-9]+']);
+    Route::apiResource('photos', PhotoController::class)->where(['photo' => '[0-7][0-9a-hjkmnp-tv-zA-HJKMNP-TV-Z]{25}']);
 });

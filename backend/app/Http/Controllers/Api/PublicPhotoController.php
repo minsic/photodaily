@@ -36,9 +36,9 @@ class PublicPhotoController extends Controller
         ]);
     }
 
-    public function show(Request $request, string $familySlug, int $photo): PhotoResource
+    public function show(Request $request, string $familySlug, string $photo): PhotoResource
     {
-        $photo = $this->publishedPhotos($request)->findOrFail($photo);
+        $photo = $this->publishedPhotos($request)->where('ulid', $photo)->firstOrFail();
 
         return PhotoResource::make($photo)->withOriginal()->withNavigation();
     }

@@ -10,7 +10,7 @@ const MAX_PER_PAGE = 500
 
 /** Ordine della timeline: data più recente prima, a parità di data l'ultima caricata. */
 export function byDateDesc(a: Photo, b: Photo): number {
-  return a.data === b.data ? b.id - a.id : b.data.localeCompare(a.data)
+  return a.data === b.data ? b.id.localeCompare(a.id) : b.data.localeCompare(a.data)
 }
 
 /**

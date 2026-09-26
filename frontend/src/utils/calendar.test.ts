@@ -12,10 +12,10 @@ const calendar: PhotoCalendar = {
   inizio: '2026-03-01',
   fine: '2026-03-15',
   giorni: [
-    { data: '2026-03-01', foto_id: 10, foto: 1, speciale: false },
-    { data: '2026-03-03', foto_id: 12, foto: 2, speciale: true },
+    { data: '2026-03-01', foto_id: 'f10', foto: 1, speciale: false },
+    { data: '2026-03-03', foto_id: 'f12', foto: 2, speciale: true },
   ],
-  bozze: [{ data: '2026-03-10', foto_id: 20 }],
+  bozze: [{ data: '2026-03-10', foto_id: 'f20' }],
   vuoti: [],
   pieni: 2,
   totali: 15,
@@ -39,9 +39,9 @@ describe('buildCalendar', () => {
     const march = months[2]!.days
     const day = (n: number) => march[n - 1]!
 
-    expect(day(1)).toMatchObject({ state: 'pieno', photoId: 10, photos: 1 })
-    expect(day(3)).toMatchObject({ state: 'pieno', photoId: 12, photos: 2, special: true })
-    expect(day(10)).toMatchObject({ state: 'bozza', photoId: 20 })
+    expect(day(1)).toMatchObject({ state: 'pieno', photoId: 'f10', photos: 1 })
+    expect(day(3)).toMatchObject({ state: 'pieno', photoId: 'f12', photos: 2, special: true })
+    expect(day(10)).toMatchObject({ state: 'bozza', photoId: 'f20' })
     expect(day(2)).toMatchObject({ state: 'vuoto', photoId: null })
     expect(day(15).state).toBe('vuoto')
     expect(day(16).state).toBe('fuori')
