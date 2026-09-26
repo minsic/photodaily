@@ -40,7 +40,7 @@ class PlanLimitsTest extends TestCase
         Sanctum::actingAs($user);
 
         $this->postJson('/api/photos', $this->payload())
-            ->assertForbidden()
+            ->assertUnprocessable()
             ->assertJsonPath('code', 'plan_limit_exceeded')
             ->assertJsonPath('limit', 'max_photos')
             ->assertJsonPath('message', 'Hai raggiunto il limite di 2 foto previsto dal piano "Free". Elimina qualche foto o passa a un piano superiore per caricarne altre.');
@@ -57,7 +57,7 @@ class PlanLimitsTest extends TestCase
         Sanctum::actingAs($user);
 
         $this->postJson('/api/photos', $this->payload(sizeKb: 200))
-            ->assertForbidden()
+            ->assertUnprocessable()
             ->assertJsonPath('code', 'plan_limit_exceeded')
             ->assertJsonPath('limit', 'max_storage_mb');
 
@@ -110,5 +110,43 @@ class PlanLimitsTest extends TestCase
             'image' => UploadedFile::fake()->image('foto.jpg')->size($sizeKb),
             'data' => '2024-05-01',
         ];
+    }
+
+    public function test_quota_reports_usage_against_the_plan_and_whether_uploads_are_blocked(): void
+    {
+        $user = $this->memberOfFamilyWithPlan(Plan::factory()->limited(photos: 3, storageMb: 1)->create(['name' => 'Free']));
+        Photo::factory()->for($user->family)->create(['size_bytes' => 512 * 1024, 'medium_bytes' => 0, 'thumbnail_bytes' => 0]);
+
+        Sanctum::actingAs($user);
+
+        $this->getJson('/api/family/quota')
+            ->assertOk()
+            ->assertExactJson(['data' => [
+                'plan' => 'Free',
+                'photos' => 1,
+                'max_photos' => 3,
+                'storage_used_mb' => 0.5,
+                'max_storage_mb' => 1,
+                'blocked' => null,
+            ]]);
+
+        Photo::factory()->for($user->family)->create(['size_bytes' => 512 * 1024, 'medium_bytes' => 0, 'thumbnail_bytes' => 0]);
+
+        $this->getJson('/api/family/quota')
+            ->assertJsonPath('data.blocked', 'Lo spazio del piano "Free" (1 MB) è tutto occupato. Elimina qualche foto o passa a un piano superiore per caricarne altre.');
+    }
+
+    public function test_quota_of_an_unlimited_plan_is_never_blocked(): void
+    {
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
+
+        $this->getJson('/api/family/quota')
+            ->assertJsonPath('data.max_photos', null)
+            ->assertJsonPath('data.max_storage_mb', null)
+            ->assertJsonPath('data.blocked', null);
+
+        $this->app['auth']->forgetGuards();
+        $this->withHeader('Authorization', '')->getJson('/api/family/quota')->assertUnauthorized();
     }
 }

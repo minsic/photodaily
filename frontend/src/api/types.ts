@@ -163,6 +163,17 @@ export interface PhotoPayload {
 }
 
 /** GET /photos/calendario: i giorni di un anno con e senza foto. */
+/** Uso del piano. I massimi null vogliono dire illimitato. */
+export interface Quota {
+  plan: string
+  photos: number
+  max_photos: number | null
+  storage_used_mb: number
+  max_storage_mb: number | null
+  /** Messaggio già pronto se non si può caricare niente, altrimenti null. */
+  blocked: string | null
+}
+
 export interface PhotoCalendar {
   anno: number
   /** Oggi nel fuso della famiglia. */

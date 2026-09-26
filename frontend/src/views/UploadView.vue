@@ -2,7 +2,7 @@
 import { onMounted, ref } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 
-import { photos as photosApi } from '@/api'
+import { family as familyApi, photos as photosApi } from '@/api'
 import { ApiError, type ValidationErrors } from '@/api/client'
 import type { PhotoPayload } from '@/api/types'
 import AppHeader from '@/components/AppHeader.vue'
@@ -13,6 +13,7 @@ import { useIncomingFilesStore } from '@/stores/incomingFiles'
 import { useToastsStore } from '@/stores/toasts'
 import { isIsoDate } from '@/utils/date'
 import { isDebug } from '@/utils/debug'
+import { uploadBlocked } from '@/utils/quota'
 import { describeSaving, shrinkForUpload } from '@/utils/shrinkImage'
 import { takeSharedFiles } from '@/utils/sharedFiles'
 
@@ -59,6 +60,18 @@ async function submit(payload: PhotoPayload, image: File | null): Promise<void> 
   errors.value = {}
 
   try {
+    // Prima dello spazio del piano: inutile ridurre e inviare una foto che
+    // verrebbe rifiutata. Se la richiesta fallisce decide il server.
+    const quota = await familyApi.quota().catch(() => null)
+    const blocked = quota ? uploadBlocked(quota) : null
+
+    if (blocked) {
+      errors.value = { image: [blocked] }
+      toasts.error(blocked)
+
+      return
+    }
+
     // La data è già nel payload: PhotoForm l'ha letta dall'EXIF dell'originale.
     const shrunk = await shrinkForUpload(image)
     const photo = await photosApi.create(shrunk.file, payload)

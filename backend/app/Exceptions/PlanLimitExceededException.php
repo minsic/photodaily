@@ -45,14 +45,33 @@ class PlanLimitExceededException extends RuntimeException implements ShouldntRep
         );
     }
 
+    /** Spazio già tutto occupato, senza un caricamento preciso in mente. */
+    public static function full(Plan $plan): self
+    {
+        return new self(
+            sprintf(
+                'Lo spazio del piano "%s" (%d MB) è tutto occupato. Elimina qualche foto o passa a un piano superiore per caricarne altre.',
+                $plan->name,
+                $plan->max_storage_mb,
+            ),
+            'max_storage_mb',
+            $plan,
+        );
+    }
+
+    /**
+     * 422 come gli altri errori del caricamento: il frontend mostra il
+     * messaggio sotto la foto, senza trattarlo come un permesso negato.
+     */
     public function render(): JsonResponse
     {
         return response()->json([
             'message' => $this->getMessage(),
+            'errors' => ['image' => [$this->getMessage()]],
             'code' => 'plan_limit_exceeded',
             'limit' => $this->limit,
             'plan' => $this->plan->slug,
-        ], 403);
+        ], 422);
     }
 
     private static function megabytes(int $bytes): string

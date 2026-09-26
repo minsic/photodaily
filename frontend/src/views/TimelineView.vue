@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 
+import { family as familyApi } from '@/api'
+import type { Quota } from '@/api/types'
 import AppHeader from '@/components/AppHeader.vue'
 import AppIcon from '@/components/AppIcon.vue'
 import AppSpinner from '@/components/AppSpinner.vue'
@@ -12,12 +14,21 @@ import { useRefreshWhenVisible } from '@/composables/useRefreshWhenVisible'
 import { useAuthStore } from '@/stores/auth'
 import { useIncomingFilesStore } from '@/stores/incomingFiles'
 import { usePhotosStore } from '@/stores/photos'
+import { describeStorage } from '@/utils/quota'
 
 const auth = useAuthStore()
 const photos = usePhotosStore()
 const router = useRouter()
 
 const menuOpen = ref(false)
+const quota = ref<Quota | null>(null)
+
+// Lo spazio si chiede a ogni apertura del menu: dopo un caricamento cambia.
+watch(menuOpen, async (open) => {
+  if (open) {
+    quota.value = await familyApi.quota().catch(() => quota.value)
+  }
+})
 const incoming = useIncomingFilesStore()
 
 async function onQuickPick(event: Event): Promise<void> {
@@ -118,14 +129,14 @@ async function logout(): Promise<void> {
           <dt>Famiglia</dt>
           <dd class="font-bold text-ink">{{ auth.family.name }}</dd>
         </div>
-        <div class="flex justify-between gap-2">
-          <dt>Spazio usato</dt>
-          <dd class="font-bold text-ink">{{ auth.family.storage_used_mb }} MB</dd>
-        </div>
-        <div v-if="auth.family.photos_count !== undefined" class="flex justify-between gap-2">
+        <div v-if="quota" class="flex justify-between gap-2">
           <dt>Foto</dt>
-          <dd class="font-bold text-ink">{{ auth.family.photos_count }}</dd>
+          <dd class="font-bold text-ink">
+            {{ quota.photos }}<template v-if="quota.max_photos !== null"> di {{ quota.max_photos }}</template>
+          </dd>
         </div>
+        <p v-if="quota" class="font-bold text-ink">{{ describeStorage(quota) }}</p>
+        <p v-if="quota?.blocked" class="text-brick">{{ quota.blocked }}</p>
       </dl>
 
       <RouterLink

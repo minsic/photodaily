@@ -12,6 +12,7 @@ import type {
   PhotoCalendar,
   PhotoPayload,
   Protagonist,
+  Quota,
   ReadAccess,
   ReminderPreferences,
   SiteFamily,
@@ -149,6 +150,11 @@ export const invites = {
 }
 
 export const family = {
+  /** Spazio e foto usati rispetto al piano: si chiede prima di ogni caricamento. */
+  quota() {
+    return api<{ data: Quota }>('/family/quota').then((response) => response.data)
+  },
+
   update(payload: {
     protagonist_name?: string | null
     protagonist_birthdate?: string | null

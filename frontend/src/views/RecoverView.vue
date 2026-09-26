@@ -2,7 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 
-import { photos as photosApi } from '@/api'
+import { family as familyApi, photos as photosApi } from '@/api'
 import { ApiError } from '@/api/client'
 import AppHeader from '@/components/AppHeader.vue'
 import AppIcon from '@/components/AppIcon.vue'
@@ -25,6 +25,7 @@ import {
   type PickedPhoto,
 } from '@/utils/recovery'
 import { isDebug } from '@/utils/debug'
+import { uploadBlocked } from '@/utils/quota'
 import { describeSaving, shrinkForUpload } from '@/utils/shrinkImage'
 import { requeueFailed, runQueue, type QueueTask } from '@/utils/uploadQueue'
 
@@ -173,7 +174,17 @@ function describeError(cause: unknown): string {
   return 'Connessione assente: riprova tra poco.'
 }
 
+const quotaError = ref<string | null>(null)
+
 async function startUpload(): Promise<void> {
+  const quota = await familyApi.quota().catch(() => null)
+
+  quotaError.value = quota ? uploadBlocked(quota, planned.value.length) : null
+
+  if (quotaError.value) {
+    return
+  }
+
   tasks.value = planned.value.map((upload) => ({
     id: upload.photoId,
     status: 'attesa',
@@ -391,6 +402,7 @@ onBeforeUnmount(() => {
       </ol>
 
       <div class="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-paper/95 px-4 py-3 backdrop-blur">
+        <p v-if="quotaError" class="mx-auto mb-2 max-w-2xl text-sm text-brick" role="alert">{{ quotaError }}</p>
         <div class="mx-auto flex max-w-2xl items-center justify-between gap-3">
           <label class="cursor-pointer text-sm font-bold text-muted underline">
             Scegline altre
@@ -402,7 +414,7 @@ onBeforeUnmount(() => {
             :disabled="planned.length === 0"
             @click="startUpload"
           >
-            Carica {{ planned.length }} {{ planned.length === 1 ? 'foto' : 'foto' }}
+            Carica {{ planned.length }} foto
           </button>
         </div>
       </div>

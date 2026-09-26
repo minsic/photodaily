@@ -54,6 +54,7 @@ Route::middleware(['auth:sanctum', EnsureHostFamilyMember::class])->group(functi
     Route::post('/invites', [InviteController::class, 'store']);
     Route::delete('/invites/{invite}', [InviteController::class, 'destroy'])->whereUlid('invite');
 
+    Route::get('/family/quota', [FamilyController::class, 'quota']);
     Route::patch('/family', [FamilyController::class, 'update']);
     Route::patch('/family/access-mode', [FamilyAccessController::class, 'update']);
 
