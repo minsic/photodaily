@@ -47,6 +47,8 @@ export interface ReminderPreferences {
   attivo: boolean
   /** HH:MM, nel fuso della famiglia. */
   orario: string
+  /** Riepilogo della settimana via email, la domenica sera. */
+  riepilogo: boolean
 }
 
 export interface User {

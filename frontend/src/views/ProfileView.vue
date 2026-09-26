@@ -5,6 +5,7 @@ import AppHeader from '@/components/AppHeader.vue'
 import AppIcon from '@/components/AppIcon.vue'
 import InstallGuide from '@/components/InstallGuide.vue'
 import ReminderSettings from '@/components/ReminderSettings.vue'
+import WeeklyDigestSetting from '@/components/WeeklyDigestSetting.vue'
 import { useAuthStore } from '@/stores/auth'
 
 /** Impostazioni personali: valgono per chi le guarda, non per tutta la famiglia. */
@@ -31,6 +32,8 @@ const auth = useAuthStore()
     </header>
 
     <ReminderSettings />
+
+    <WeeklyDigestSetting />
 
     <InstallGuide />
   </main>

@@ -55,6 +55,7 @@ class PushController extends Controller
         $data = $request->validate([
             'attivo' => ['sometimes', 'boolean'],
             'orario' => ['sometimes', 'date_format:H:i'],
+            'riepilogo' => ['sometimes', 'boolean'],
         ], [
             'orario.date_format' => "L'orario deve essere nel formato 20:30.",
         ]);
@@ -63,6 +64,7 @@ class PushController extends Controller
         $user->forceFill(array_filter([
             'reminder_enabled' => $data['attivo'] ?? null,
             'reminder_time' => isset($data['orario']) ? $data['orario'].':00' : null,
+            'weekly_digest_enabled' => $data['riepilogo'] ?? null,
         ], fn ($value) => $value !== null))->save();
 
         return UserResource::make($user->load('family.plan'));

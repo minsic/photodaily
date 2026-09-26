@@ -13,3 +13,6 @@ Schedule::command('photos:send-reminders')->everyFifteenMinutes()->withoutOverla
 
 // Token del login scaduti (90 giorni, config/sanctum.php): via una volta al giorno.
 Schedule::command('sanctum:prune-expired --hours=24')->daily();
+
+// Riepilogo della settimana: la domenica dalle 19 nel fuso di ogni famiglia.
+Schedule::command('photos:send-weekly-digest')->hourly()->withoutOverlapping();

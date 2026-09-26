@@ -27,6 +27,8 @@ class UserResource extends JsonResource
             'promemoria' => [
                 'attivo' => (bool) $this->reminder_enabled,
                 'orario' => substr((string) ($this->reminder_time ?? '20:30'), 0, 5),
+                // Riepilogo della settimana via email, la domenica sera.
+                'riepilogo' => (bool) ($this->weekly_digest_enabled ?? true),
             ],
             'family' => FamilyResource::make($this->whenLoaded('family')),
         ];

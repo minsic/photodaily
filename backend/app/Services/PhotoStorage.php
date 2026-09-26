@@ -368,11 +368,20 @@ class PhotoStorage
         return $photo->medium_path === null ? null : $this->signedUrl($photo->medium_path);
     }
 
-    private function signedUrl(string $path): string
+    /**
+     * Miniatura per le email: l'URL deve reggere finché la si legge, non
+     * un'ora. Sette giorni è il massimo degli URL firmati S3/R2.
+     */
+    public function emailThumbnailUrl(Photo $photo): string
+    {
+        return $this->signedUrl($photo->thumbnail_path ?? $photo->image_path, 7 * 24 * 60);
+    }
+
+    private function signedUrl(string $path, ?int $minutes = null): string
     {
         return $this->disk()->temporaryUrl(
             $path,
-            now()->addMinutes(config('photodaily.url_ttl_minutes')),
+            now()->addMinutes($minutes ?? config('photodaily.url_ttl_minutes')),
         );
     }
 

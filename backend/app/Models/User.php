@@ -54,6 +54,7 @@ class User extends Authenticatable
             'password' => 'hashed',
             'role' => Role::class,
             'reminder_enabled' => 'boolean',
+            'weekly_digest_enabled' => 'boolean',
         ];
     }
 }
