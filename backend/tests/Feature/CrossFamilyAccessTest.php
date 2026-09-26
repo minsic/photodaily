@@ -217,6 +217,7 @@ class CrossFamilyAccessTest extends TestCase
             ['GET', '/api/photos/calendario'],
             ['GET', '/api/photos/mese?anno=2024&mese=5'],
             ['GET', '/api/photos/sequenza'],
+            ['GET', '/api/photos/anni-fa'],
             ['GET', '/api/family/quota'],
             ['PATCH', '/api/family'],
             ['GET', "/api/photos/{$this->photoB->ulid}"],

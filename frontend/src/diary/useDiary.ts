@@ -2,7 +2,7 @@ import { computed, type ComputedRef } from 'vue'
 import { useRoute, type RouteLocationRaw } from 'vue-router'
 
 import { photos as photosApi, publicDiary as publicApi } from '@/api'
-import type { Photo, PhotoCalendar, PhotoMonth, Protagonist, SequenceFilters, SequencePage, YearSummary } from '@/api/types'
+import type { OnThisDay, Photo, PhotoCalendar, PhotoMonth, Protagonist, SequenceFilters, SequencePage, YearSummary } from '@/api/types'
 import { useAuthStore } from '@/stores/auth'
 import { usePhotosStore } from '@/stores/photos'
 import { usePublicDiaryStore } from '@/stores/publicDiary'
@@ -21,6 +21,7 @@ export interface Diary {
   photo(id: string): Promise<Photo>
   sequence(filters: SequenceFilters): Promise<SequencePage>
   month(year: number, month: number): Promise<PhotoMonth>
+  onThisDay(): Promise<OnThisDay>
   year(year: number): Promise<PhotoCalendar>
   years(): Promise<YearSummary[]>
   /** Foto già in memoria (dalla timeline), da mostrare subito. */
@@ -55,6 +56,7 @@ export function useDiary(): ComputedRef<Diary> {
         photo: (id) => photosApi.get(id),
         sequence: (filters) => photosApi.sequence(filters),
         month: (year, month) => photosApi.month(year, month),
+        onThisDay: () => photosApi.onThisDay(),
         year: (year) => photosApi.calendar(year),
         years: () => photosApi.years(),
         cached: (id) => photos.find(id),
@@ -83,6 +85,7 @@ export function useDiary(): ComputedRef<Diary> {
       photo: (id) => publicApi.get(slug, publicDiary.token, id),
       sequence: (filters) => publicApi.sequence(slug, publicDiary.token, filters),
       month: (year, month) => publicApi.month(slug, publicDiary.token, year, month),
+      onThisDay: () => publicApi.onThisDay(slug, publicDiary.token),
       year: (year) => publicApi.calendar(slug, publicDiary.token, year),
       years: () => publicApi.years(slug, publicDiary.token),
       cached: (id) => publicDiary.find(id),

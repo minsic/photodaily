@@ -5,6 +5,7 @@ import AppHeader from '@/components/AppHeader.vue'
 import AppIcon from '@/components/AppIcon.vue'
 import AppSpinner from '@/components/AppSpinner.vue'
 import FilterBar from '@/components/FilterBar.vue'
+import OnThisDayStrip from '@/components/OnThisDayStrip.vue'
 import ViewSwitch from '@/components/ViewSwitch.vue'
 import AppLogo from '@/components/logo/AppLogo.vue'
 import TimelineItem from '@/components/TimelineItem.vue'
@@ -103,6 +104,8 @@ watch(() => props.slug, (slug) => diary.open(slug))
         @update:anno="diary.setAnno"
         @update:speciali="diary.setSoloSpeciali"
       />
+
+      <OnThisDayStrip />
 
       <AppSpinner v-if="diary.loading" />
 

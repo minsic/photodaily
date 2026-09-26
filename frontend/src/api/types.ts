@@ -168,6 +168,26 @@ export interface PhotoPayload {
 }
 
 /** GET /photos/calendario: i giorni di un anno con e senza foto. */
+/** Una foto dello stesso giorno di N anni fa. */
+export interface YearsAgo {
+  anni: number
+  data: string
+  id: string
+  /** Foto di quel giorno (se ce n'era più d'una). */
+  foto: number
+  speciale: boolean
+  medium_url: string | null
+  thumbnail_url: string
+  medium_width: number | null
+  medium_height: number | null
+}
+
+export interface OnThisDay {
+  /** Oggi, nel fuso della famiglia. */
+  oggi: string
+  anni: YearsAgo[]
+}
+
 /** Un giorno con foto nella vista Mese. */
 export interface MonthDay {
   data: string

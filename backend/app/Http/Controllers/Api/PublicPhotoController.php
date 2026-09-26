@@ -10,6 +10,7 @@ use App\Http\Requests\SequenceRequest;
 use App\Http\Resources\PhotoResource;
 use App\Models\Family;
 use App\Models\Photo;
+use App\Services\OnThisDay;
 use App\Services\PhotoCalendar;
 use App\Services\PhotoSequence;
 use Illuminate\Database\Eloquent\Builder;
@@ -38,6 +39,12 @@ class PublicPhotoController extends Controller
         return response()->json([
             'data' => Photo::publishedYearsFor($this->family($request)->id),
         ]);
+    }
+
+    /** "Un anno fa oggi" anche per chi guarda il diario da fuori (solo foto pubblicate). */
+    public function onThisDay(Request $request, OnThisDay $onThisDay): JsonResponse
+    {
+        return response()->json(['data' => $onThisDay->for($this->family($request))]);
     }
 
     /** Vista Mese in sola lettura: niente bozze. */

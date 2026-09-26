@@ -8,6 +8,7 @@ import AppHeader from '@/components/AppHeader.vue'
 import AppIcon from '@/components/AppIcon.vue'
 import AppSpinner from '@/components/AppSpinner.vue'
 import FilterBar from '@/components/FilterBar.vue'
+import OnThisDayStrip from '@/components/OnThisDayStrip.vue'
 import ViewSwitch from '@/components/ViewSwitch.vue'
 import TimelineItem from '@/components/TimelineItem.vue'
 import { useInfiniteScroll } from '@/composables/useInfiniteScroll'
@@ -182,6 +183,9 @@ async function logout(): Promise<void> {
       @update:speciali="onSpeciali"
       @update:bozze="onBozze"
     />
+
+    <!-- In cima alla timeline, ma non fra le bozze. -->
+    <OnThisDayStrip v-if="photos.stato !== 'bozze'" />
 
     <AppSpinner v-if="photos.loading" />
 

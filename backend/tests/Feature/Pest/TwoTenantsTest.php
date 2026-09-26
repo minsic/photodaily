@@ -76,6 +76,7 @@ it('keeps every endpoint of each family blind to the other one', function (strin
         '/api/photos/calendario?anno=2026',
         '/api/photos/mese?anno=2026&mese=3',
         '/api/photos/sequenza',
+        '/api/photos/anni-fa',
         '/api/family/quota',
         '/api/invites',
     ];

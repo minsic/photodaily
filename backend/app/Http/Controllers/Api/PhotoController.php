@@ -10,6 +10,7 @@ use App\Http\Requests\StorePhotoRequest;
 use App\Http\Requests\UpdatePhotoRequest;
 use App\Http\Resources\PhotoResource;
 use App\Models\Photo;
+use App\Services\OnThisDay;
 use App\Services\PhotoCalendar;
 use App\Services\PhotoSequence;
 use App\Services\PhotoStorage;
@@ -58,6 +59,14 @@ class PhotoController extends Controller
             ?? (int) substr($family->today(), 0, 4);
 
         return response()->json(['data' => $calendar->forYear($family, (int) $year)]);
+    }
+
+    /**
+     * "Un anno fa oggi": le foto dello stesso giorno negli anni passati.
+     */
+    public function onThisDay(Request $request, OnThisDay $onThisDay): JsonResponse
+    {
+        return response()->json(['data' => $onThisDay->for($request->user()->family)]);
     }
 
     /**

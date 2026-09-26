@@ -11,6 +11,7 @@ import type {
   PhotoFilters,
   PhotoCalendar,
   PhotoMonth,
+  OnThisDay,
   PhotoPayload,
   Protagonist,
   Quota,
@@ -93,6 +94,10 @@ export const photos = {
 
   get(id: string) {
     return api<{ data: Photo }>(`/photos/${id}`).then((response) => response.data)
+  },
+
+  onThisDay() {
+    return api<{ data: OnThisDay }>('/photos/anni-fa').then((response) => response.data)
   },
 
   month(anno: number, mese: number) {
@@ -216,6 +221,12 @@ export const publicDiary = {
       token,
       query: photoQuery(filters),
     })
+  },
+
+  onThisDay(slug: string, token: string | null) {
+    return api<{ data: OnThisDay }>(`/public/${encodeURIComponent(slug)}/photos/anni-fa`, { token }).then(
+      (response) => response.data,
+    )
   },
 
   month(slug: string, token: string | null, anno: number, mese: number) {
