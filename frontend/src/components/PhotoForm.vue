@@ -134,11 +134,11 @@ function fieldError(name: string): string | undefined {
         <template v-else>
           <AppIcon name="camera" class="size-8" />
           <span class="text-sm font-bold">Scegli una foto</span>
-          <span class="text-xs">JPG, PNG o WebP</span>
+          <span class="text-xs">JPG, PNG, WebP o HEIC</span>
         </template>
         <input
           type="file"
-          accept="image/jpeg,image/png,image/webp"
+          accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
           class="sr-only"
           @change="onFileChange"
         />

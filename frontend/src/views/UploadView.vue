@@ -12,6 +12,8 @@ import { usePhotosStore } from '@/stores/photos'
 import { useIncomingFilesStore } from '@/stores/incomingFiles'
 import { useToastsStore } from '@/stores/toasts'
 import { isIsoDate } from '@/utils/date'
+import { isDebug } from '@/utils/debug'
+import { describeSaving, shrinkForUpload } from '@/utils/shrinkImage'
 import { takeSharedFiles } from '@/utils/sharedFiles'
 
 const store = usePhotosStore()
@@ -57,11 +59,13 @@ async function submit(payload: PhotoPayload, image: File | null): Promise<void> 
   errors.value = {}
 
   try {
-    const photo = await photosApi.create(image, payload)
+    // La data è già nel payload: PhotoForm l'ha letta dall'EXIF dell'originale.
+    const shrunk = await shrinkForUpload(image)
+    const photo = await photosApi.create(shrunk.file, payload)
 
     store.upsert(photo)
     await store.loadYears().catch(() => undefined)
-    toasts.success('Foto caricata.')
+    toasts.success(isDebug() ? `Foto caricata (${describeSaving(shrunk)}).` : 'Foto caricata.')
     await router.replace({ name: 'photo', params: { id: photo.id } })
   } catch (cause) {
     if (cause instanceof ApiError) {

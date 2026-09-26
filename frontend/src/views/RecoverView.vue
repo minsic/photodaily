@@ -24,6 +24,8 @@ import {
   type DayGroup,
   type PickedPhoto,
 } from '@/utils/recovery'
+import { isDebug } from '@/utils/debug'
+import { describeSaving, shrinkForUpload } from '@/utils/shrinkImage'
 import { requeueFailed, runQueue, type QueueTask } from '@/utils/uploadQueue'
 
 /**
@@ -36,6 +38,9 @@ interface UploadTask extends QueueTask {
   date: string
   file: File
   caption: string
+  /** Byte prima e dopo la riduzione nel browser (per la modalità debug). */
+  originalBytes?: number
+  bytes?: number
 }
 
 const auth = useAuthStore()
@@ -61,6 +66,17 @@ const skippedFull = computed(
 const uncertain = computed(() => picked.value.filter((photo) => !photo.certain).length)
 const done = computed(() => tasks.value.filter((task) => task.status === 'fatto').length)
 const failed = computed(() => tasks.value.filter((task) => task.status === 'errore').length)
+const debug = isDebug()
+const saving = computed(() => {
+  const shrunk = tasks.value.filter((task) => task.bytes !== undefined)
+
+  return shrunk.length === 0
+    ? null
+    : describeSaving({
+        originalBytes: shrunk.reduce((sum, task) => sum + task.originalBytes!, 0),
+        bytes: shrunk.reduce((sum, task) => sum + task.bytes!, 0),
+      })
+})
 const percent = computed(() =>
   tasks.value.length === 0 ? 0 : Math.round(((done.value + failed.value) / tasks.value.length) * 100),
 )
@@ -179,7 +195,14 @@ async function upload(): Promise<void> {
     await runQueue(
       tasks.value,
       async (task) => {
-        await photosApi.create(task.file, {
+        // La riduzione va una foto alla volta (la serializza shrinkForUpload),
+        // gli invii restano tre in parallelo.
+        const shrunk = await shrinkForUpload(task.file)
+
+        task.originalBytes = shrunk.originalBytes
+        task.bytes = shrunk.bytes
+
+        await photosApi.create(shrunk.file, {
           data: task.date,
           // La didascalia è già l'HTML minimale prodotto da CaptionTextarea.
           didascalia: task.caption || null,
@@ -423,6 +446,8 @@ onBeforeUnmount(() => {
           Torna al calendario
         </RouterLink>
       </div>
+
+      <p v-if="debug && saving" class="mt-4 text-xs text-muted">Debug · ridotte nel browser: {{ saving }}</p>
 
       <ul class="mt-6 grid grid-cols-3 gap-2 sm:grid-cols-5">
         <li v-for="task in tasks" :key="task.id" class="relative">
