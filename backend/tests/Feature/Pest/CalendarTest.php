@@ -122,3 +122,41 @@ it('lets an admin change the timezone and exposes it', function () {
 
     $this->getJson('/api/me')->assertJsonPath('data.family.timezone', 'Europe/London');
 });
+
+it('gives the month view one thumbnail per day, with specials, drafts and the count', function () {
+    photoOn($this->family, '2026-03-01');
+    photoOn($this->family, '2026-03-03', ['data_speciale' => true]);
+    $newest = photoOn($this->family, '2026-03-03');
+    $draftOnly = photoOn($this->family, '2026-03-10', ['is_draft' => true]);
+    photoOn($this->family, '2026-03-01', ['is_draft' => true]);
+    photoOn($this->family, '2026-02-20');
+
+    $month = $this->getJson('/api/photos/mese?anno=2026&mese=3')->assertOk()->json('data');
+    $days = collect($month['giorni'])->keyBy('data');
+
+    expect($month)->toMatchArray(['anno' => 2026, 'mese' => 3, 'oggi' => '2026-03-15', 'inizio_diario' => '2026-03-01', 'pieni' => 2, 'totali' => 15])
+        ->and($days->keys()->all())->toBe(['2026-03-01', '2026-03-03', '2026-03-10'])
+        ->and($days['2026-03-03'])->toMatchArray(['id' => $newest->ulid, 'foto' => 2, 'bozze' => 0, 'speciale' => true])
+        ->and($days['2026-03-01'])->toMatchArray(['foto' => 1, 'bozze' => 1])
+        ->and($days['2026-03-10'])->toMatchArray(['id' => $draftOnly->ulid, 'foto' => 0, 'bozze' => 1])
+        ->and($days['2026-03-03']['thumbnail_url'])->toBeString();
+
+    // Prima della nascita non ci sono giorni da contare; il futuro nemmeno.
+    expect($this->getJson('/api/photos/mese?anno=2026&mese=2')->json('data'))->toMatchArray(['pieni' => 0, 'totali' => 0])
+        ->and($this->getJson('/api/photos/mese?anno=2026&mese=4')->json('data.totali'))->toBe(0);
+
+    $this->getJson('/api/photos/mese?anno=2026&mese=13')->assertUnprocessable();
+});
+
+it('never shows drafts in the public month and year views', function () {
+    photoOn($this->family, '2026-03-02');
+    photoOn($this->family, '2026-03-05', ['is_draft' => true]);
+    $this->family->update(['slug' => 'giopellino']);
+    $this->family->changeAccessMode(App\Enums\AccessMode::Public);
+
+    $month = $this->getJson('/api/public/giopellino/photos/mese?anno=2026&mese=3')->assertOk()->json('data');
+    expect(collect($month['giorni'])->pluck('data')->all())->toBe(['2026-03-02']);
+
+    $year = $this->getJson('/api/public/giopellino/photos/calendario?anno=2026')->assertOk()->json('data');
+    expect($year['bozze'])->toBe([])->and($year['vuoti'])->toContain('2026-03-05');
+});

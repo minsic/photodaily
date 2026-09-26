@@ -39,9 +39,23 @@ const router = createRouter({
       component: () => import('@/views/UploadView.vue'),
     },
     {
+      // Il calendario del giro precedente è diventato la vista Anno.
       path: '/calendario',
       name: 'calendar',
-      component: () => import('@/views/CalendarView.vue'),
+      redirect: () => ({ name: 'year', params: { anno: new Date().getFullYear() } }),
+    },
+    {
+      path: '/anno/:anno([0-9]{4})',
+      name: 'year',
+      component: () => import('@/views/YearView.vue'),
+      props: (route) => ({ anno: Number(route.params.anno) }),
+    },
+    {
+      path: '/mese/:anno([0-9]{4})/:mese([0-9]{1,2})',
+      name: 'month',
+      component: () => import('@/views/MonthView.vue'),
+      props: (route) => ({ anno: Number(route.params.anno), mese: Number(route.params.mese) }),
+      meta: { backdrop: true },
     },
     {
       path: '/profilo',
@@ -88,6 +102,20 @@ const router = createRouter({
       component: () => import('@/views/PublicTimelineView.vue'),
       props: true,
       meta: { guest: true, backdrop: true },
+    },
+    {
+      path: '/pub/:slug/mese/:anno([0-9]{4})/:mese([0-9]{1,2})',
+      name: 'public-month',
+      component: () => import('@/views/MonthView.vue'),
+      props: (route) => ({ anno: Number(route.params.anno), mese: Number(route.params.mese) }),
+      meta: { guest: true, backdrop: true },
+    },
+    {
+      path: '/pub/:slug/anno/:anno([0-9]{4})',
+      name: 'public-year',
+      component: () => import('@/views/YearView.vue'),
+      props: (route) => ({ anno: Number(route.params.anno) }),
+      meta: { guest: true },
     },
     {
       path: '/pub/:slug/foto/:id([0-9A-Za-z]{26})',

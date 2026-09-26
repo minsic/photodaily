@@ -168,6 +168,29 @@ export interface PhotoPayload {
 }
 
 /** GET /photos/calendario: i giorni di un anno con e senza foto. */
+/** Un giorno con foto nella vista Mese. */
+export interface MonthDay {
+  data: string
+  /** La foto da aprire: la più recente fra le pubblicate, altrimenti una bozza. */
+  id: string
+  thumbnail_url: string
+  /** Foto pubblicate quel giorno. */
+  foto: number
+  bozze: number
+  speciale: boolean
+}
+
+export interface PhotoMonth {
+  anno: number
+  mese: number
+  oggi: string
+  /** Primo giorno del diario (nascita o prima foto): prima non si scorre. */
+  inizio_diario: string | null
+  giorni: MonthDay[]
+  pieni: number
+  totali: number
+}
+
 /** Una foto nell'elenco leggero dello slideshow. */
 export interface SequenceItem {
   id: string

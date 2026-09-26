@@ -10,6 +10,7 @@ import type {
   Photo,
   PhotoFilters,
   PhotoCalendar,
+  PhotoMonth,
   PhotoPayload,
   Protagonist,
   Quota,
@@ -92,6 +93,10 @@ export const photos = {
 
   get(id: string) {
     return api<{ data: Photo }>(`/photos/${id}`).then((response) => response.data)
+  },
+
+  month(anno: number, mese: number) {
+    return api<{ data: PhotoMonth }>('/photos/mese', { query: { anno, mese } }).then((response) => response.data)
   },
 
   /** Foto pubblicate in ordine di data, a blocchi da 100: per lo slideshow. */
@@ -211,6 +216,20 @@ export const publicDiary = {
       token,
       query: photoQuery(filters),
     })
+  },
+
+  month(slug: string, token: string | null, anno: number, mese: number) {
+    return api<{ data: PhotoMonth }>(`/public/${encodeURIComponent(slug)}/photos/mese`, {
+      token,
+      query: { anno, mese },
+    }).then((response) => response.data)
+  },
+
+  calendar(slug: string, token: string | null, anno: number) {
+    return api<{ data: PhotoCalendar }>(`/public/${encodeURIComponent(slug)}/photos/calendario`, {
+      token,
+      query: { anno },
+    }).then((response) => response.data)
   },
 
   sequence(slug: string, token: string | null, filters: SequenceFilters) {

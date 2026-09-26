@@ -2,7 +2,7 @@ import { computed, type ComputedRef } from 'vue'
 import { useRoute, type RouteLocationRaw } from 'vue-router'
 
 import { photos as photosApi, publicDiary as publicApi } from '@/api'
-import type { Photo, Protagonist, SequenceFilters, SequencePage } from '@/api/types'
+import type { Photo, PhotoCalendar, PhotoMonth, Protagonist, SequenceFilters, SequencePage, YearSummary } from '@/api/types'
 import { useAuthStore } from '@/stores/auth'
 import { usePhotosStore } from '@/stores/photos'
 import { usePublicDiaryStore } from '@/stores/publicDiary'
@@ -20,6 +20,9 @@ export interface Diary {
   protagonist: Protagonist | null
   photo(id: string): Promise<Photo>
   sequence(filters: SequenceFilters): Promise<SequencePage>
+  month(year: number, month: number): Promise<PhotoMonth>
+  year(year: number): Promise<PhotoCalendar>
+  years(): Promise<YearSummary[]>
   /** Foto già in memoria (dalla timeline), da mostrare subito. */
   cached(id: string): Photo | undefined
   remove(id: string): Promise<void>
@@ -51,6 +54,9 @@ export function useDiary(): ComputedRef<Diary> {
         token: null,
         photo: (id) => photosApi.get(id),
         sequence: (filters) => photosApi.sequence(filters),
+        month: (year, month) => photosApi.month(year, month),
+        year: (year) => photosApi.calendar(year),
+        years: () => photosApi.years(),
         cached: (id) => photos.find(id),
         remove: async (id) => {
           await photosApi.remove(id)
@@ -76,6 +82,9 @@ export function useDiary(): ComputedRef<Diary> {
       token: publicDiary.token,
       photo: (id) => publicApi.get(slug, publicDiary.token, id),
       sequence: (filters) => publicApi.sequence(slug, publicDiary.token, filters),
+      month: (year, month) => publicApi.month(slug, publicDiary.token, year, month),
+      year: (year) => publicApi.calendar(slug, publicDiary.token, year),
+      years: () => publicApi.years(slug, publicDiary.token),
       cached: (id) => publicDiary.find(id),
       remove: () => Promise.reject(new Error('Il diario pubblico è in sola lettura.')),
       to: {

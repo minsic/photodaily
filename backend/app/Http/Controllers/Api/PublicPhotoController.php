@@ -5,10 +5,12 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Middleware\EnsurePublicFamilyAccess;
 use App\Http\Requests\IndexPhotosRequest;
+use App\Http\Requests\MonthRequest;
 use App\Http\Requests\SequenceRequest;
 use App\Http\Resources\PhotoResource;
 use App\Models\Family;
 use App\Models\Photo;
+use App\Services\PhotoCalendar;
 use App\Services\PhotoSequence;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -36,6 +38,24 @@ class PublicPhotoController extends Controller
         return response()->json([
             'data' => Photo::publishedYearsFor($this->family($request)->id),
         ]);
+    }
+
+    /** Vista Mese in sola lettura: niente bozze. */
+    public function month(MonthRequest $request, PhotoCalendar $calendar): JsonResponse
+    {
+        return response()->json([
+            'data' => $calendar->forMonth($this->family($request), $request->integer('anno'), $request->integer('mese'), withDrafts: false),
+        ]);
+    }
+
+    /** Vista Anno in sola lettura: niente bozze. */
+    public function calendar(Request $request, PhotoCalendar $calendar): JsonResponse
+    {
+        $family = $this->family($request);
+        $year = $request->validate(['anno' => ['nullable', 'integer', 'between:1900,2100']])['anno']
+            ?? (int) substr($family->today(), 0, 4);
+
+        return response()->json(['data' => $calendar->forYear($family, (int) $year, withDrafts: false)]);
     }
 
     public function sequence(SequenceRequest $request, PhotoSequence $sequence): JsonResponse

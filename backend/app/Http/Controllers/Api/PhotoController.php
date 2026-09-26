@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\IndexPhotosRequest;
+use App\Http\Requests\MonthRequest;
 use App\Http\Requests\SequenceRequest;
 use App\Http\Requests\StorePhotoRequest;
 use App\Http\Requests\UpdatePhotoRequest;
@@ -57,6 +58,16 @@ class PhotoController extends Controller
             ?? (int) substr($family->today(), 0, 4);
 
         return response()->json(['data' => $calendar->forYear($family, (int) $year)]);
+    }
+
+    /**
+     * Un mese con le miniature dei giorni, per la vista Mese.
+     */
+    public function month(MonthRequest $request, PhotoCalendar $calendar): JsonResponse
+    {
+        return response()->json([
+            'data' => $calendar->forMonth($request->user()->family, $request->integer('anno'), $request->integer('mese')),
+        ]);
     }
 
     /**
