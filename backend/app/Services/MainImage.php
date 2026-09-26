@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Exceptions\UnreadableImageException;
 use App\Support\ImageMetadata;
+use GdImage;
 use Illuminate\Support\Facades\Image;
 use Imagick;
 use Symfony\Component\HttpFoundation\File\File;
@@ -98,27 +99,87 @@ class MainImage
      */
     public function reencode(string $path, bool $imagick = false): string
     {
-        // Una foto da 48 MP decodificata da GD occupa circa 200 MB.
         $limit = ini_get('memory_limit');
         ini_set('memory_limit', config('photodaily.thumbnail_memory_limit'));
 
         try {
-            $image = Image::fromPath($path);
-
             if ($imagick) {
-                $image = $image->usingImagick();
+                return Image::fromPath($path)->usingImagick()
+                    ->orient()
+                    ->scale(self::maxSide(), self::maxSide())
+                    ->optimize('jpg', self::JPEG_QUALITY)
+                    ->toBytes();
             }
 
-            return $image->orient()
-                ->scale(self::maxSide(), self::maxSide())
-                ->optimize('jpg', self::JPEG_QUALITY)
-                ->toBytes();
+            return $this->reencodeWithGd($path);
+        } catch (UnreadableImageException $e) {
+            throw $e;
         } catch (Throwable $e) {
             throw new UnreadableImageException($e->getMessage(), previous: $e);
         } finally {
             gc_collect_cycles();
             @ini_set('memory_limit', $limit);
         }
+    }
+
+    /**
+     * GD a mano, non la libreria immagini: quella copia la bitmap a ogni
+     * passaggio, e una foto da 48 MP (circa 200 MB decodificata) ruotata e
+     * poi ridotta supera i 512 MB. Qui prima si riduce e si libera
+     * l'originale, poi si ruota la versione piccola: il picco resta sui 250 MB.
+     */
+    private function reencodeWithGd(string $path): string
+    {
+        $source = match (self::detectFormat((string) file_get_contents($path, length: 16))) {
+            'jpeg' => @imagecreatefromjpeg($path),
+            'png' => @imagecreatefrompng($path),
+            'webp' => @imagecreatefromwebp($path),
+            default => false,
+        };
+
+        if ($source === false) {
+            throw new UnreadableImageException('GD non riesce a decodificare il file.');
+        }
+
+        $orientation = $this->orientation($path, 'jpeg');
+        [$width, $height] = [imagesx($source), imagesy($source)];
+        $scale = min(1, self::maxSide() / max($width, $height));
+
+        if ($scale < 1) {
+            $resized = imagecreatetruecolor(max(1, (int) round($width * $scale)), max(1, (int) round($height * $scale)));
+            imagecopyresampled($resized, $source, 0, 0, 0, 0, imagesx($resized), imagesy($resized), $width, $height);
+            // Da PHP 8 la bitmap si libera quando nessuno la referenzia più.
+            $source = $resized;
+            unset($resized);
+        }
+
+        $image = $this->applyOrientation($source, $orientation);
+        unset($source);
+
+        ob_start();
+        imagejpeg($image, null, self::JPEG_QUALITY);
+
+        return (string) ob_get_clean();
+    }
+
+    /**
+     * Rotazioni e specchiature dell'EXIF (1-8). imagerotate gira in senso
+     * antiorario: -90 è un quarto di giro in senso orario.
+     */
+    private function applyOrientation(GdImage $image, int $orientation): GdImage
+    {
+        $rotate = fn (GdImage $image, int $angle): GdImage => imagerotate($image, $angle, 0);
+
+        return match ($orientation) {
+            2 => tap($image, fn () => imageflip($image, IMG_FLIP_HORIZONTAL)),
+            3 => $rotate($image, 180),
+            4 => tap($image, fn () => imageflip($image, IMG_FLIP_VERTICAL)),
+            5 => tap($rotate($image, -90), fn (GdImage $rotated) => imageflip($rotated, IMG_FLIP_HORIZONTAL)),
+            6 => $rotate($image, -90),
+            7 => tap($rotate($image, -90), fn (GdImage $rotated) => imageflip($rotated, IMG_FLIP_VERTICAL)),
+            8 => $rotate($image, 90),
+            default => $image,
+        };
     }
 
     private function orientation(string $path, ?string $format): int

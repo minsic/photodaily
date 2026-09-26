@@ -83,3 +83,47 @@ it('answers 422, not 500, when a photo looks fine but cannot be decoded', functi
 
     expect(Storage::disk('r2')->allFiles())->toBeEmpty();
 });
+
+/**
+ * JPEG 40x20 con il quadrante in alto a sinistra rosso e orientamento EXIF
+ * $orientation: si controlla dove finisce il rosso dopo la ricodifica.
+ */
+function orientedJpeg(int $orientation): string
+{
+    $image = imagecreatetruecolor(40, 20);
+    imagefilledrectangle($image, 0, 0, 19, 9, 0xFF0000);
+    ob_start();
+    imagejpeg($image, null, 95);
+    $jpeg = (string) ob_get_clean();
+
+    $tiff = 'II'.pack('v', 42).pack('V', 8).pack('v', 1)
+        .pack('v', 0x0112).pack('v', 3).pack('V', 1).pack('v', $orientation).pack('v', 0)
+        .pack('V', 0);
+    $app1 = "Exif\0\0".$tiff;
+
+    return "\xFF\xD8\xFF\xE1".pack('n', strlen($app1) + 2).$app1.substr($jpeg, 2);
+}
+
+it('applies every exif orientation to the pixels', function (int $orientation, array $size, array $redCorner) {
+    $path = tempnam(sys_get_temp_dir(), 'orient');
+    file_put_contents($path, orientedJpeg($orientation));
+
+    $prepared = app(MainImage::class)->prepare(new Symfony\Component\HttpFoundation\File\File($path));
+    $image = imagecreatefromjpeg($prepared['file']->getPathname());
+    [$x, $y] = $redCorner;
+
+    expect([imagesx($image), imagesy($image)])->toBe($size)
+        ->and(imagecolorat($image, $x, $y) >> 16)->toBeGreaterThan(200);
+
+    @unlink($path);
+    @unlink((string) $prepared['temporary']);
+})->with([
+    // [orientamento, misura finale, un punto che deve essere rosso]
+    'ruotata 180°' => [3, [40, 20], [35, 17]],
+    'specchiata' => [2, [40, 20], [35, 2]],
+    'capovolta' => [4, [40, 20], [2, 17]],
+    'trasposta' => [5, [20, 40], [2, 2]],
+    '90° orario' => [6, [20, 40], [17, 2]],
+    'trasversa' => [7, [20, 40], [17, 37]],
+    '90° antiorario' => [8, [20, 40], [2, 37]],
+]);
