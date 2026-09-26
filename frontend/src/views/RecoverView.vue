@@ -163,6 +163,11 @@ function setCaption(group: DayGroup, caption: string): void {
 }
 
 function describeError(cause: unknown): string {
+  // 503: il server ricodifica una foto grezza alla volta, dice lui quando riprovare.
+  if (cause instanceof ApiError && cause.status === 503) {
+    return cause.field('image') ?? cause.message
+  }
+
   if (cause instanceof ApiError && cause.status >= 500) {
     return "Il server non ce l'ha fatta: riprova tra poco."
   }

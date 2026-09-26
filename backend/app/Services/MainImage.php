@@ -2,9 +2,12 @@
 
 namespace App\Services;
 
+use App\Exceptions\ServerBusyException;
 use App\Exceptions\UnreadableImageException;
 use App\Support\ImageMetadata;
 use GdImage;
+use Illuminate\Contracts\Cache\LockTimeoutException;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Image;
 use Imagick;
 use Symfony\Component\HttpFoundation\File\File;
@@ -22,6 +25,9 @@ use Throwable;
 class MainImage
 {
     public const JPEG_QUALITY = 88;
+
+    /** Oltre questo il lock si libera da solo, anche se il processo è morto a metà. */
+    private const LOCK_SECONDS = 120;
 
     /** Formati accettati, riconosciuti dai primi byte del file. */
     public const FORMATS = ['jpeg', 'png', 'webp', 'heic'];
@@ -99,11 +105,28 @@ class MainImage
      */
     public function reencode(string $path, bool $imagick = false): string
     {
+        // Una ricodifica alla volta su tutto il server: ognuna può chiedere
+        // fino a mezzo GB, e tre file grezzi insieme (coda multipla, o due
+        // persone che caricano) finirebbero la RAM della VPS. Le altre
+        // aspettano il loro turno; oltre l'attesa massima si risponde 503.
+        try {
+            return Cache::lock('photodaily:ricodifica', self::LOCK_SECONDS)
+                ->block(config('photodaily.reencode_wait_seconds'), fn () => $this->reencodeNow($path, $imagick));
+        } catch (LockTimeoutException) {
+            throw new ServerBusyException;
+        }
+    }
+
+    private function reencodeNow(string $path, bool $imagick): string
+    {
         $limit = ini_get('memory_limit');
         ini_set('memory_limit', config('photodaily.thumbnail_memory_limit'));
 
         try {
             if ($imagick) {
+                // Oltre questa soglia Imagick lavora su disco invece di crescere in RAM.
+                Imagick::setResourceLimit(Imagick::RESOURCETYPE_MEMORY, 256 * 1024 * 1024);
+
                 return Image::fromPath($path)->usingImagick()
                     ->orient()
                     ->scale(self::maxSide(), self::maxSide())

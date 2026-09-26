@@ -18,6 +18,10 @@ return [
     // Lato lungo della versione principale su R2 (vedi App\Services\MainImage).
     'main_max_side' => 4096,
 
+    // Quanto aspetta un caricamento il suo turno di ricodifica (una alla
+    // volta, vedi App\Services\MainImage) prima di rispondere 503.
+    'reencode_wait_seconds' => (int) env('PHOTOS_REENCODE_WAIT_SECONDS', 45),
+
     'url_ttl_minutes' => (int) env('PHOTOS_URL_TTL_MINUTES', 60),
 
     // 25 MB: le foto da 48 MP dell'iPhone arrivano a 20 MB. PHP deve

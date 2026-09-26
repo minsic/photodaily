@@ -127,3 +127,27 @@ it('applies every exif orientation to the pixels', function (int $orientation, a
     'trasversa' => [7, [20, 40], [17, 37]],
     '90° antiorario' => [8, [20, 40], [2, 37]],
 ]);
+
+it('re-encodes one photo at a time and answers 503 when the turn does not come', function () {
+    config(['photodaily.main_max_side' => 200, 'photodaily.reencode_wait_seconds' => 0]);
+
+    $image = imagecreatetruecolor(400, 300);
+    ob_start();
+    imagepng($image);
+    $png = (string) ob_get_clean();
+
+    // Un'altra ricodifica in corso: il lock è già preso.
+    $lock = Illuminate\Support\Facades\Cache::lock('photodaily:ricodifica', 30);
+    expect($lock->get())->toBeTrue();
+
+    upload(UploadedFile::fake()->createWithContent('grande.png', $png))
+        ->assertStatus(503)
+        ->assertHeader('Retry-After', '10')
+        ->assertJsonPath('errors.image.0', 'Il server sta già elaborando altre foto: riprova tra qualche secondo.');
+
+    expect(Photo::count())->toBe(0);
+
+    $lock->release();
+
+    upload(UploadedFile::fake()->createWithContent('grande.png', $png))->assertCreated();
+});

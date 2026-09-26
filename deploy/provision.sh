@@ -47,6 +47,8 @@ add-apt-repository -y ppa:ondrej/php
 apt-get update -q
 apt-get install -yq php$PHP-fpm php$PHP-cli php$PHP-mysql php$PHP-sqlite3 php$PHP-mbstring php$PHP-xml \
     php$PHP-curl php$PHP-zip php$PHP-gd php$PHP-intl php$PHP-bcmath php$PHP-gmp php$PHP-opcache
+# Imagick serve solo per le foto HEIC (GD non le legge); libde265 è il decoder HEVC di libheif.
+apt-get install -yq php$PHP-imagick libheif-plugin-libde265
 update-alternatives --set php /usr/bin/php$PHP
 
 for sapi in fpm cli; do
