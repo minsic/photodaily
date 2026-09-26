@@ -46,12 +46,30 @@ export const usePublicDiaryStore = defineStore('public-diary', () => {
   )
   const items = paged.items
 
-  async function open(nextSlug: string): Promise<void> {
+  /**
+   * Imposta il diario (e il token salvato) senza caricare niente: al lettore
+   * o alla vista Mese aperti direttamente da un link basta questo.
+   */
+  function select(nextSlug: string): void {
     if (slug.value !== nextSlug) {
       reset()
       slug.value = nextSlug
       token.value = readStoredToken(nextSlug)
     }
+  }
+
+  /** Profilo del protagonista, se non è già arrivato: serve per l'età. */
+  async function ensureProfile(): Promise<void> {
+    if (protagonist.value === null && slug.value) {
+      protagonist.value = await publicApi
+        .profile(slug.value, token.value)
+        .then((profile) => profile.protagonist)
+        .catch(() => null)
+    }
+  }
+
+  async function open(nextSlug: string): Promise<void> {
+    select(nextSlug)
 
     state.value = 'loading'
 
@@ -199,6 +217,7 @@ export const usePublicDiaryStore = defineStore('public-diary', () => {
 
   return {
     slug,
+    token,
     state,
     items,
     years,
@@ -212,6 +231,9 @@ export const usePublicDiaryStore = defineStore('public-diary', () => {
     error,
     unlocking,
     unlockError,
+    select,
+    ensureProfile,
+    handleAccessError,
     open,
     unlock,
     load,

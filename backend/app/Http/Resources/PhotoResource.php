@@ -82,10 +82,26 @@ class PhotoResource extends JsonResource
     }
 
     /**
-     * @return array{id: string, data: string}|null
+     * Con gli URL di medium e miniatura: il lettore precarica la foto
+     * precedente e la successiva senza chiederle una per una.
+     *
+     * @return array{id: string, data: string, medium_url: string|null, thumbnail_url: string, medium_width: int|null, medium_height: int|null}|null
      */
     private function navigationLink(?Photo $photo): ?array
     {
-        return $photo ? ['id' => $photo->ulid, 'data' => $photo->data] : null;
+        if ($photo === null) {
+            return null;
+        }
+
+        $storage = app(PhotoStorage::class);
+
+        return [
+            'id' => $photo->ulid,
+            'data' => $photo->data,
+            'medium_url' => $storage->mediumUrl($photo),
+            'thumbnail_url' => $storage->thumbnailUrl($photo),
+            'medium_width' => $photo->medium_width,
+            'medium_height' => $photo->medium_height,
+        ];
     }
 }

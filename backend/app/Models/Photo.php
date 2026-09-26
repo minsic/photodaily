@@ -95,7 +95,7 @@ class Photo extends Model
                 ->orWhere(fn (Builder $query) => $query->where('data', $this->data)->where('id', '<', $this->id)))
             ->orderByDesc('data')
             ->orderByDesc('id')
-            ->first(['id', 'ulid', 'data']);
+            ->first(['id', 'ulid', 'data', 'family_id', 'image_path', 'thumbnail_path', 'medium_path', 'medium_width', 'medium_height']);
     }
 
     /**
@@ -109,7 +109,7 @@ class Photo extends Model
                 ->orWhere(fn (Builder $query) => $query->where('data', $this->data)->where('id', '>', $this->id)))
             ->orderBy('data')
             ->orderBy('id')
-            ->first(['id', 'ulid', 'data']);
+            ->first(['id', 'ulid', 'data', 'family_id', 'image_path', 'thumbnail_path', 'medium_path', 'medium_width', 'medium_height']);
     }
 
     /**

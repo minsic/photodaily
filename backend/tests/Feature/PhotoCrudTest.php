@@ -100,8 +100,13 @@ class PhotoCrudTest extends TestCase
 
         $this->getJson("/api/photos/{$photo->ulid}")
             ->assertOk()
-            ->assertJsonPath('data.precedente', ['id' => $previous->ulid, 'data' => '2024-05-01'])
-            ->assertJsonPath('data.successiva', ['id' => $next->ulid, 'data' => '2024-05-03']);
+            ->assertJsonPath('data.precedente.id', $previous->ulid)
+            ->assertJsonPath('data.precedente.data', '2024-05-01')
+            ->assertJsonPath('data.successiva.id', $next->ulid)
+            ->assertJsonPath('data.successiva.data', '2024-05-03')
+            // Per precaricarle nel lettore senza altre richieste.
+            ->assertJsonPath('data.successiva.thumbnail_url', fn (string $url) => str_contains($url, $next->thumbnail_path ?? $next->image_path))
+            ->assertJsonStructure(['data' => ['precedente' => ['medium_url', 'medium_width', 'medium_height']]]);
 
         $this->getJson("/api/photos/{$next->ulid}")
             ->assertJsonPath('data.successiva', null);

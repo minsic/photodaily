@@ -62,6 +62,11 @@ export interface PhotoLink {
   /** ULID: l'id numerico resta nel backend. */
   id: string
   data: string
+  /** Per precaricarla nel lettore senza chiederla. */
+  medium_url: string | null
+  thumbnail_url: string
+  medium_width: number | null
+  medium_height: number | null
 }
 
 export interface Photo {

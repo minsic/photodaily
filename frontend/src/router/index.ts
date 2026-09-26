@@ -1,6 +1,7 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHistory, loadRouteLocation, START_LOCATION } from 'vue-router'
 
 import { useAuthStore } from '@/stores/auth'
+import { useReaderStore } from '@/stores/reader'
 import { useSiteStore } from '@/stores/site'
 import TimelineView from '@/views/TimelineView.vue'
 
@@ -10,6 +11,10 @@ declare module 'vue-router' {
     guest?: boolean
     /** Pagine riservate agli amministratori della famiglia. */
     admin?: boolean
+    /** Il lettore a schermo intero: si apre sopra la vista precedente. */
+    reader?: boolean
+    /** Viste sopra cui si può aprire il lettore (restano montate sotto). */
+    backdrop?: boolean
   }
 }
 
@@ -26,6 +31,7 @@ const router = createRouter({
       path: '/',
       name: 'timeline',
       component: TimelineView,
+      meta: { backdrop: true },
     },
     {
       path: '/carica',
@@ -51,8 +57,9 @@ const router = createRouter({
       // L'id della foto è un ULID: i vecchi link numerici finiscono nel 404.
       path: '/foto/:id([0-9A-Za-z]{26})',
       name: 'photo',
-      component: () => import('@/views/PhotoView.vue'),
+      component: () => import('@/views/ReaderView.vue'),
       props: (route) => ({ id: String(route.params.id) }),
+      meta: { reader: true },
     },
     {
       path: '/foto/:id([0-9A-Za-z]{26})/modifica',
@@ -80,14 +87,14 @@ const router = createRouter({
       name: 'public-timeline',
       component: () => import('@/views/PublicTimelineView.vue'),
       props: true,
-      meta: { guest: true },
+      meta: { guest: true, backdrop: true },
     },
     {
       path: '/pub/:slug/foto/:id([0-9A-Za-z]{26})',
       name: 'public-photo',
-      component: () => import('@/views/PublicPhotoView.vue'),
-      props: (route) => ({ slug: String(route.params.slug), id: String(route.params.id) }),
-      meta: { guest: true },
+      component: () => import('@/views/ReaderView.vue'),
+      props: (route) => ({ id: String(route.params.id) }),
+      meta: { guest: true, reader: true },
     },
     {
       path: '/:pathMatch(.*)*',
@@ -96,8 +103,12 @@ const router = createRouter({
       meta: { guest: true },
     },
   ],
-  scrollBehavior(_to, _from, savedPosition) {
-    // Tornando indietro dalla foto si riprende il punto della timeline.
+  scrollBehavior(to, from, savedPosition) {
+    // Il lettore si apre e si chiude sopra la vista, che resta dov'era.
+    if (to.meta.reader || (from.meta.reader && useReaderStore().backdrop === to.fullPath)) {
+      return false
+    }
+
     return savedPosition ?? { top: 0 }
   },
 })
@@ -132,6 +143,44 @@ router.beforeEach(async (to) => {
   // Le impostazioni famiglia sono solo per gli admin: l'API le rifiuterebbe
   // comunque, ma così non si mostra una pagina che non si può usare.
   return to.meta.admin && !auth.isAdmin ? { name: 'timeline' } : true
+})
+
+/**
+ * Vista da tenere sotto il lettore: quella da cui lo si apre (se è una delle
+ * viste con meta.backdrop). Passando da una foto all'altra resta la stessa;
+ * ricaricando la pagina la si ritrova nello stato della cronologia.
+ */
+router.beforeEach(async (to, from) => {
+  if (!to.meta.reader) {
+    return true
+  }
+
+  const reader = useReaderStore()
+
+  if (from === START_LOCATION) {
+    const saved = (window.history.state as { backdrop?: unknown } | null)?.backdrop
+    reader.backdrop = typeof saved === 'string' ? saved : null
+  } else if (!from.meta.reader) {
+    reader.backdrop = from.meta.backdrop ? from.fullPath : null
+  }
+
+  const backdrop = reader.backdrop ? router.resolve(reader.backdrop) : null
+
+  if (backdrop === null || backdrop.matched.length === 0 || !backdrop.meta.backdrop) {
+    reader.backdrop = null
+    reader.backdropRoute = null
+  } else if (reader.backdropRoute?.fullPath !== backdrop.fullPath) {
+    // Dopo un ricaricamento il componente della vista sotto non è ancora scaricato.
+    reader.backdropRoute = await loadRouteLocation(backdrop)
+  }
+
+  return true
+})
+
+router.afterEach((to) => {
+  if (to.meta.reader) {
+    window.history.replaceState({ ...window.history.state, backdrop: useReaderStore().backdrop }, '')
+  }
 })
 
 export default router
