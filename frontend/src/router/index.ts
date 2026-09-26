@@ -3,6 +3,8 @@ import { createRouter, createWebHistory, loadRouteLocation, START_LOCATION } fro
 import { useAuthStore } from '@/stores/auth'
 import { useReaderStore } from '@/stores/reader'
 import { useSiteStore } from '@/stores/site'
+import { todayIso, DEFAULT_TIMEZONE } from '@/utils/date'
+import { readViewPreference } from '@/utils/viewPreference'
 import TimelineView from '@/views/TimelineView.vue'
 
 declare module 'vue-router' {
@@ -171,6 +173,30 @@ router.beforeEach(async (to) => {
   // Le impostazioni famiglia sono solo per gli admin: l'API le rifiuterebbe
   // comunque, ma così non si mostra una pagina che non si può usare.
   return to.meta.admin && !auth.isAdmin ? { name: 'timeline' } : true
+})
+
+/**
+ * Aprendo l'app si riparte dall'ultima vista scelta su questo dispositivo:
+ * se era Mese, dal mese corrente (nel fuso della famiglia).
+ */
+router.beforeEach((to, from) => {
+  if (from !== START_LOCATION || readViewPreference() !== 'mese') {
+    return true
+  }
+
+  const timezone = useAuthStore().family?.timezone ?? useSiteStore().family?.timezone ?? DEFAULT_TIMEZONE
+  const today = todayIso(timezone)
+  const params = { anno: today.slice(0, 4), mese: String(Number(today.slice(5, 7))) }
+
+  if (to.name === 'timeline') {
+    return { name: 'month', params, replace: true }
+  }
+
+  if (to.name === 'public-timeline') {
+    return { name: 'public-month', params: { ...params, slug: to.params.slug }, replace: true }
+  }
+
+  return true
 })
 
 /**

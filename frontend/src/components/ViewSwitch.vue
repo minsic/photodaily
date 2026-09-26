@@ -5,9 +5,16 @@ import { RouterLink } from 'vue-router'
 import AppIcon from '@/components/AppIcon.vue'
 import { useFamilyToday } from '@/composables/useFamilyToday'
 import { useDiary } from '@/diary/useDiary'
+import { saveViewPreference } from '@/utils/viewPreference'
 
-/** "Timeline | Mese" nell'header: il lettore si apre da tutte e due. */
+/**
+ * "Timeline | Mese" nell'header: il lettore si apre da tutte e due. La vista
+ * mostrata è anche quella da cui ripartire la prossima volta, su questo
+ * dispositivo.
+ */
 const props = defineProps<{ current: 'timeline' | 'mese' }>()
+
+saveViewPreference(props.current)
 
 const diary = useDiary()
 const { today } = useFamilyToday()
@@ -35,7 +42,8 @@ const options = computed(() => [
       :aria-current="props.current === option.key ? 'page' : undefined"
     >
       <AppIcon :name="option.icon" class="size-3.5" />
-      <span>{{ option.label }}</span>
+      <!-- Sui telefoni stretti restano le icone: l'header ha anche "Carica" e il menu. -->
+      <span class="sr-only sm:not-sr-only">{{ option.label }}</span>
     </RouterLink>
   </nav>
 </template>

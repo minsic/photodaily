@@ -5,6 +5,7 @@ import AppHeader from '@/components/AppHeader.vue'
 import AppIcon from '@/components/AppIcon.vue'
 import AppSpinner from '@/components/AppSpinner.vue'
 import FilterBar from '@/components/FilterBar.vue'
+import ViewSwitch from '@/components/ViewSwitch.vue'
 import AppLogo from '@/components/logo/AppLogo.vue'
 import TimelineItem from '@/components/TimelineItem.vue'
 import { useInfiniteScroll } from '@/composables/useInfiniteScroll'
@@ -41,10 +42,11 @@ watch(() => props.slug, (slug) => diary.open(slug))
       <AppLogo class="h-8 text-ink" />
     </template>
     <template #right>
-      <span class="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-muted">
+      <span class="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-muted" title="Sola lettura">
         <AppIcon name="lock" class="size-3.5" />
-        sola lettura
+        <span class="sr-only sm:not-sr-only">sola lettura</span>
       </span>
+      <ViewSwitch v-if="diary.state === 'ready'" current="timeline" class="ml-2" />
     </template>
   </AppHeader>
 

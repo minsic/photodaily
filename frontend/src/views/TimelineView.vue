@@ -8,6 +8,7 @@ import AppHeader from '@/components/AppHeader.vue'
 import AppIcon from '@/components/AppIcon.vue'
 import AppSpinner from '@/components/AppSpinner.vue'
 import FilterBar from '@/components/FilterBar.vue'
+import ViewSwitch from '@/components/ViewSwitch.vue'
 import TimelineItem from '@/components/TimelineItem.vue'
 import { useInfiniteScroll } from '@/composables/useInfiniteScroll'
 import { useRefreshWhenVisible } from '@/composables/useRefreshWhenVisible'
@@ -85,14 +86,7 @@ async function logout(): Promise<void> {
 <template>
   <AppHeader>
     <template #right>
-      <RouterLink
-        :to="{ name: 'calendar' }"
-        class="mr-1 flex size-9 items-center justify-center rounded-full border-2 border-line text-muted hover:text-ink"
-        aria-label="Calendario"
-        title="Calendario"
-      >
-        <AppIcon name="calendar" class="size-4" />
-      </RouterLink>
+      <ViewSwitch current="timeline" class="mr-1" />
       <!-- Un tap e si apre subito il selettore: galleria o fotocamera (su iPhone
            il foglio "Libreria foto / Scatta foto"). La foto passa poi al form. -->
       <label
