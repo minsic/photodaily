@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use App\Enums\Role;
 use App\Models\Invite;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -30,6 +31,18 @@ class FamilyInvitation extends Notification
     {
         $family = $this->invite->family;
         $inviter = $this->invite->inviter;
+
+        // Il primo amministratore di una famiglia appena creata: nessuno lo invita.
+        if ($this->invite->role === Role::Admin && $inviter === null) {
+            return (new MailMessage)
+                ->subject("Il diario {$family->name} è pronto su PhotoDaily")
+                ->greeting('Ciao!')
+                ->line("Il diario fotografico {$family->name} è pronto e lo amministri tu.")
+                ->line('Scegli la tua password per entrare: poi potrai invitare il resto della famiglia.')
+                ->action('Scegli la password', $this->url)
+                ->line('Il link scade il '.$this->invite->expires_at->format('d/m/Y').'.')
+                ->line('Se non aspettavi questa email puoi ignorarla.');
+        }
 
         return (new MailMessage)
             ->subject("Invito a {$family->name} su PhotoDaily")

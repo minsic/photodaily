@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Enums\Role;
 use App\Http\Controllers\Controller;
 use App\Http\Middleware\ResolveHostFamily;
 use App\Http\Requests\AcceptInviteRequest;
@@ -122,7 +121,8 @@ class InviteController extends Controller
                 'name' => $request->validated('name'),
                 'email' => $invite->email,
                 'password' => $request->validated('password'),
-                'role' => Role::Member,
+                // Admin solo per l'invito di family:create; dalle impostazioni si invitano membri.
+                'role' => $invite->role,
             ]);
 
             $invite->update(['accepted_at' => now()]);

@@ -23,13 +23,14 @@ class Family extends Model
     use HasFactory;
 
     /**
-     * Slug che non possono diventare sottodomini di una famiglia,
-     * perché servono (o serviranno) al servizio stesso.
+     * Sottodomini che nessuna famiglia può prendere (config photodaily.reserved_slugs).
+     *
+     * @return list<string>
      */
-    public const RESERVED_SLUGS = [
-        'admin', 'api', 'app', 'assets', 'blog', 'cdn', 'dev', 'docs', 'help', 'mail',
-        'photodaily', 'static', 'staging', 'status', 'support', 'test', 'www',
-    ];
+    public static function reservedSlugs(): array
+    {
+        return config('photodaily.reserved_slugs');
+    }
 
     /**
      * @var array<string, mixed>

@@ -55,6 +55,21 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Reserved slugs
+    |--------------------------------------------------------------------------
+    |
+    | Sottodomini che nessuna famiglia può prendere: servono (o serviranno)
+    | al servizio stesso.
+    |
+    */
+
+    'reserved_slugs' => [
+        'admin', 'api', 'app', 'assets', 'blog', 'cdn', 'dev', 'docs', 'help', 'mail',
+        'photodaily', 'static', 'staging', 'status', 'support', 'test', 'www',
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Timezone
     |--------------------------------------------------------------------------
     |

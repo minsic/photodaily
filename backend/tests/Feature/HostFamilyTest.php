@@ -145,6 +145,11 @@ class HostFamilyTest extends TestCase
         foreach (['', 'nessuno.photodaily.app', 'example.com', 'rossi.it'] as $domain) {
             $this->getJson('/api/tls/ask?domain='.$domain)->assertNotFound();
         }
+
+        // Da fuori non risponde nemmeno per gli host esistenti: niente elenco degli slug.
+        $this->withServerVariables(['REMOTE_ADDR' => '203.0.113.9'])
+            ->getJson('/api/tls/ask?domain=giopellino.photodaily.app')
+            ->assertNotFound();
     }
 
     public function test_forwarded_host_is_trusted_only_from_configured_proxies(): void
@@ -165,18 +170,18 @@ class HostFamilyTest extends TestCase
     {
         foreach (['www', 'api', 'Maiuscole', 'con_underscore', '-trattino', 'trattino-'] as $slug) {
             $this->assertSame(1, Artisan::call('family:create', [
-                'slug' => $slug, 'name' => 'Prova', '--admin-email' => "a{$slug}@example.com", '--admin-name' => 'A', '--no-interaction' => true,
+                'slug' => $slug, 'name' => 'Prova', 'email' => "a{$slug}@example.com", '--no-interaction' => true,
             ]), "Lo slug [{$slug}] doveva essere rifiutato.");
         }
 
         foreach (['non un dominio', 'bianchi.photodaily.app', 'giopellino.it'] as $domain) {
             $this->assertSame(1, Artisan::call('family:create', [
-                'slug' => 'bianchi', 'name' => 'Bianchi', '--domain' => $domain, '--admin-email' => 'b@example.com', '--admin-name' => 'B', '--no-interaction' => true,
+                'slug' => 'bianchi', 'name' => 'Bianchi', '--domain' => $domain, 'email' => 'b@example.com', '--no-interaction' => true,
             ]), "Il dominio [{$domain}] doveva essere rifiutato.");
         }
 
         $this->assertSame(0, Artisan::call('family:create', [
-            'slug' => 'bianchi', 'name' => 'Bianchi', '--domain' => 'WWW.Bianchi.it', '--admin-email' => 'b@example.com', '--admin-name' => 'B', '--no-interaction' => true,
+            'slug' => 'bianchi', 'name' => 'Bianchi', '--domain' => 'WWW.Bianchi.it', 'email' => 'b@example.com', '--no-interaction' => true,
         ]));
         $this->assertSame('bianchi.it', Family::where('slug', 'bianchi')->value('custom_domain'));
     }
