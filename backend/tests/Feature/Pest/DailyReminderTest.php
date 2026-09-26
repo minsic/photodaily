@@ -159,10 +159,10 @@ it('lets each user subscribe devices and choose the time', function () {
 
     expect($other->pushSubscriptions()->count())->toBe(1);
 
-    $this->getJson('/api/me')->assertJsonPath('data.promemoria', ['attivo' => false, 'orario' => '20:30']);
-    $this->patchJson('/api/me/promemoria', ['attivo' => true, 'orario' => '21:15'])
+    $this->getJson('/api/me')->assertJsonPath('data.promemoria', ['attivo' => false, 'orario' => '20:30', 'riepilogo' => true]);
+    $this->patchJson('/api/me/promemoria', ['attivo' => true, 'orario' => '21:15', 'riepilogo' => true])
         ->assertOk()
-        ->assertJsonPath('data.promemoria', ['attivo' => true, 'orario' => '21:15']);
+        ->assertJsonPath('data.promemoria', ['attivo' => true, 'orario' => '21:15', 'riepilogo' => true]);
     $this->patchJson('/api/me/promemoria', ['orario' => '9pm'])->assertUnprocessable();
 
     $this->deleteJson('/api/push/iscrizioni', ['endpoint' => 'https://fcm.googleapis.com/fcm/send/xyz'])->assertNoContent();
