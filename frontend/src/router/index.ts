@@ -90,6 +90,14 @@ const router = createRouter({
       meta: { admin: true },
     },
     {
+      // Dal link mandato al nuovo indirizzo: ?token=…
+      path: '/email/conferma',
+      name: 'confirm-email',
+      component: () => import('@/views/ConfirmEmailView.vue'),
+      props: (route) => ({ token: typeof route.query.token === 'string' ? route.query.token : '' }),
+      meta: { guest: true },
+    },
+    {
       path: '/password/dimenticata',
       name: 'forgot-password',
       component: () => import('@/views/ForgotPasswordView.vue'),

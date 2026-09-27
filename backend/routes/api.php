@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\EmailChangeController;
 use App\Http\Controllers\Api\FamilyAccessController;
 use App\Http\Controllers\Api\FamilyController;
 use App\Http\Controllers\Api\InviteController;
@@ -27,6 +28,8 @@ Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:lo
 Route::middleware('throttle:password-reset')->group(function () {
     Route::post('/password/dimenticata', [PasswordResetController::class, 'forgot']);
     Route::post('/password/nuova', [PasswordResetController::class, 'reset']);
+    // Dal link al nuovo indirizzo: basta il token, anche senza essere entrati.
+    Route::post('/email/conferma', [EmailChangeController::class, 'confirm']);
 });
 
 Route::middleware('throttle:invites')->group(function () {
@@ -60,6 +63,8 @@ Route::middleware(['auth:sanctum', EnsureHostFamilyMember::class])->group(functi
     Route::patch('/me', [ProfileController::class, 'update']);
     Route::put('/me/password', [ProfileController::class, 'updatePassword'])->middleware('throttle:login');
     Route::delete('/me/sessioni', [ProfileController::class, 'destroyOtherSessions']);
+    Route::post('/me/email', [EmailChangeController::class, 'request'])->middleware('throttle:login');
+    Route::delete('/me/email', [EmailChangeController::class, 'cancel']);
 
     Route::get('/push/config', [PushController::class, 'config']);
     Route::post('/push/iscrizioni', [PushController::class, 'subscribe']);

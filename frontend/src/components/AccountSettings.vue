@@ -7,8 +7,8 @@ import { useAuthStore } from '@/stores/auth'
 import { useToastsStore } from '@/stores/toasts'
 
 /**
- * Il proprio account: nome, password, dispositivi collegati. L'email non si
- * cambia da qui: è anche quella con cui si entra, e andrebbe confermata.
+ * Il proprio account: nome, email (confermata col link al nuovo indirizzo),
+ * password, dispositivi collegati.
  */
 const auth = useAuthStore()
 const toasts = useToastsStore()
@@ -24,6 +24,11 @@ const savingPassword = ref(false)
 const passwordErrors = ref<Record<string, string>>({})
 
 const closing = ref(false)
+
+const newEmail = ref('')
+const emailPassword = ref('')
+const savingEmail = ref(false)
+const emailErrors = ref<Record<string, string>>({})
 
 function sessionsText(closed: number): string {
   if (closed === 0) {
@@ -90,6 +95,49 @@ async function savePassword(): Promise<void> {
   }
 }
 
+async function requestEmail(): Promise<void> {
+  savingEmail.value = true
+  emailErrors.value = {}
+
+  try {
+    const user = await authApi.requestEmailChange({ email: newEmail.value.trim(), password_attuale: emailPassword.value })
+
+    if (auth.user) {
+      auth.user.email_in_attesa = user.email_in_attesa
+    }
+
+    newEmail.value = ''
+    emailPassword.value = ''
+  } catch (cause) {
+    if (cause instanceof ApiError && cause.status === 429) {
+      emailErrors.value = { password_attuale: 'Troppi tentativi: riprova tra qualche minuto.' }
+    } else if (cause instanceof ApiError) {
+      emailErrors.value = {
+        email: cause.field('email') ?? '',
+        password_attuale: cause.field('password_attuale') ?? '',
+      }
+    } else {
+      emailErrors.value = { email: 'Non riesco a mandare la richiesta. Riprova.' }
+    }
+  } finally {
+    savingEmail.value = false
+  }
+}
+
+async function cancelEmail(): Promise<void> {
+  try {
+    const user = await authApi.cancelEmailChange()
+
+    if (auth.user) {
+      auth.user.email_in_attesa = user.email_in_attesa
+    }
+
+    toasts.success('Richiesta annullata: resta la tua email di prima.')
+  } catch {
+    toasts.error('Non riesco ad annullare la richiesta. Riprova.')
+  }
+}
+
 async function closeOthers(): Promise<void> {
   closing.value = true
 
@@ -130,6 +178,56 @@ async function closeOthers(): Promise<void> {
       </div>
       <p v-if="nameError" class="text-sm text-brick">{{ nameError }}</p>
     </form>
+
+    <div class="space-y-3">
+      <h2 class="text-lg font-bold">Email</h2>
+      <p class="text-sm text-muted">
+        Entri con <strong class="text-ink">{{ auth.user?.email }}</strong>. Per cambiarla ti mandiamo un link al
+        nuovo indirizzo: finché non lo apri resta questa.
+      </p>
+
+      <div v-if="auth.user?.email_in_attesa" class="rounded-xl bg-card px-4 py-3 text-sm card-shadow" role="status">
+        <p>
+          Abbiamo mandato un link a <strong>{{ auth.user.email_in_attesa }}</strong>: aprilo per confermare. Vale 24
+          ore.
+        </p>
+        <button type="button" class="mt-2 font-bold text-brick underline" @click="cancelEmail">Annulla il cambio</button>
+      </div>
+
+      <form v-else class="space-y-3" novalidate @submit.prevent="requestEmail">
+        <div>
+          <label for="new-email" class="mb-1 block text-sm font-bold">Nuova email</label>
+          <input
+            id="new-email"
+            v-model="newEmail"
+            type="email"
+            autocomplete="email"
+            required
+            class="w-full rounded-xl border-2 border-line bg-card px-3 py-2.5"
+          />
+          <p v-if="emailErrors.email" class="mt-1 text-sm text-brick">{{ emailErrors.email }}</p>
+        </div>
+        <div>
+          <label for="email-password" class="mb-1 block text-sm font-bold">Password attuale</label>
+          <input
+            id="email-password"
+            v-model="emailPassword"
+            type="password"
+            autocomplete="current-password"
+            required
+            class="w-full rounded-xl border-2 border-line bg-card px-3 py-2.5"
+          />
+          <p v-if="emailErrors.password_attuale" class="mt-1 text-sm text-brick">{{ emailErrors.password_attuale }}</p>
+        </div>
+        <button
+          type="submit"
+          class="w-full rounded-xl border-2 border-line px-4 py-2.5 font-bold disabled:opacity-60"
+          :disabled="savingEmail || !newEmail || !emailPassword"
+        >
+          {{ savingEmail ? 'Invio…' : 'Mandami il link di conferma' }}
+        </button>
+      </form>
+    </div>
 
     <form class="space-y-3" novalidate @submit.prevent="savePassword">
       <h2 class="text-lg font-bold">Password</h2>

@@ -16,7 +16,7 @@ use Laravel\Sanctum\HasApiTokens;
 use NotificationChannels\WebPush\HasPushSubscriptions;
 
 #[Fillable(['family_id', 'name', 'email', 'password', 'role'])]
-#[Hidden(['password', 'remember_token'])]
+#[Hidden(['password', 'remember_token', 'pending_email_token'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
@@ -66,6 +66,7 @@ class User extends Authenticatable
             'role' => Role::class,
             'reminder_enabled' => 'boolean',
             'weekly_digest_enabled' => 'boolean',
+            'pending_email_expires_at' => 'datetime',
         ];
     }
 }

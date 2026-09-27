@@ -24,6 +24,10 @@ class UserResource extends JsonResource
             'email' => $this->email,
             'role' => $this->role,
             // Promemoria serale: preferenze personali, l'orario è nel fuso della famiglia.
+            // Nuova email in attesa di conferma (col link mandato a quell'indirizzo).
+            'email_in_attesa' => $this->pending_email !== null && $this->pending_email_expires_at?->isFuture()
+                ? $this->pending_email
+                : null,
             'promemoria' => [
                 'attivo' => (bool) $this->reminder_enabled,
                 'orario' => substr((string) ($this->reminder_time ?? '20:30'), 0, 5),

@@ -58,6 +58,22 @@ export const auth = {
     )
   },
 
+  /** Manda il link di conferma al nuovo indirizzo; finché non lo si apre non cambia niente. */
+  requestEmailChange(payload: { email: string; password_attuale: string }) {
+    return api<{ data: User }>('/me/email', { method: 'POST', body: payload }).then((response) => response.data)
+  },
+
+  cancelEmailChange() {
+    return api<{ data: User }>('/me/email', { method: 'DELETE' }).then((response) => response.data)
+  },
+
+  /** Dal link dell'email: funziona anche senza essere entrati. */
+  confirmEmailChange(token: string) {
+    return api<{ data: { email: string } }>('/email/conferma', { method: 'POST', body: { token }, token: null }).then(
+      (response) => response.data,
+    )
+  },
+
   closeOtherSessions() {
     return api<{ data: { sessioni_chiuse: number } }>('/me/sessioni', { method: 'DELETE' }).then(
       (response) => response.data,

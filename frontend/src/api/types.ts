@@ -55,6 +55,8 @@ export interface User {
   id: number
   name: string
   email: string
+  /** Nuova email in attesa di conferma col link mandato a quell'indirizzo. */
+  email_in_attesa: string | null
   role: Role
   promemoria: ReminderPreferences
   family?: Family
