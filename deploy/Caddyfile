@@ -53,6 +53,15 @@ https:// {
 		-Server
 	}
 
+	# Motori di ricerca: si indicizzano solo la presentazione, la registrazione
+	# e le pagine legali dell'indirizzo principale. I diari delle famiglie
+	# (sottodomini e domini propri) e tutto il resto restano fuori.
+	@noindex not {
+		host photodaily.app
+		path / /benvenuto /registrati /privacy /termini /cookie
+	}
+	header @noindex X-Robots-Tag "noindex, nofollow"
+
 	# La domanda dell'on-demand TLS è solo per Caddy (sito su 127.0.0.1:8081).
 	handle /api/tls/* {
 		respond 404
