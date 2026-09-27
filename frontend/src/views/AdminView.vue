@@ -24,6 +24,30 @@ const loading = ref(true)
 const loadError = ref<string | null>(null)
 const busySlug = ref<string | null>(null)
 const suspending = ref<AdminFamily | null>(null)
+/** Cambio di piano in attesa di conferma: dalla tendina non parte subito. */
+const planChange = ref<{ family: AdminFamily; plan: AdminPlan } | null>(null)
+
+/** Cosa del diario sta già oltre i limiti del piano proposto. */
+const planChangeWarning = computed(() => {
+  if (!planChange.value) {
+    return ''
+  }
+
+  const { family, plan } = planChange.value
+  const over: string[] = []
+
+  if (plan.max_photos !== null && family.photos_count > plan.max_photos) {
+    over.push(`ha ${family.photos_count} foto e il limite è ${plan.max_photos}`)
+  }
+
+  if (plan.max_storage_mb !== null && family.storage_used_mb > plan.max_storage_mb) {
+    over.push(`usa ${formatMb(family.storage_used_mb)} e il limite è ${formatMb(plan.max_storage_mb)}`)
+  }
+
+  return over.length
+    ? ` Attenzione: il diario ${over.join(' e ')}, quindi non potrà più caricare foto.`
+    : ''
+})
 
 const accessLabels: Record<AccessMode, string> = {
   private: 'privato',
@@ -88,7 +112,23 @@ async function update(family: AdminFamily, payload: { plan?: string; sospesa?: b
 }
 
 function onPlanChange(family: AdminFamily, event: Event): void {
-  void update(family, { plan: (event.target as HTMLSelectElement).value })
+  const select = event.target as HTMLSelectElement
+  const plan = plans.value.find((item) => item.slug === select.value)
+
+  // La tendina torna al piano attuale finché non si conferma.
+  select.value = family.plan ?? ''
+
+  if (plan) {
+    planChange.value = { family, plan }
+  }
+}
+
+async function confirmPlanChange(): Promise<void> {
+  if (planChange.value) {
+    await update(planChange.value.family, { plan: planChange.value.plan.slug })
+  }
+
+  planChange.value = null
 }
 
 async function logout(): Promise<void> {
@@ -221,6 +261,16 @@ async function confirmSuspend(): Promise<void> {
       </ul>
     </template>
   </main>
+
+  <ConfirmDialog
+    v-if="planChange"
+    :title="`Passare ${planChange.family.name} al piano ${planChange.plan.name}?`"
+    :message="`Nuovi limiti: ${planLabel(planChange.plan)}.${planChangeWarning}`"
+    confirm-label="Cambia piano"
+    :busy="busySlug === planChange.family.slug"
+    @confirm="confirmPlanChange"
+    @cancel="planChange = null"
+  />
 
   <ConfirmDialog
     v-if="suspending"
