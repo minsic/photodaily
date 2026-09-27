@@ -94,7 +94,18 @@ export const auth = {
 
   /** Il codice monouso arrivato dalla registrazione, sull'indirizzo del diario nuovo. */
   handoff(code: string) {
-    return api<LoginResponse>('/entra', { method: 'POST', body: { code, device_name: deviceName() }, token: null })
+    return api<LoginResponse & { benvenuto: boolean }>('/entra', {
+      method: 'POST',
+      body: { code, device_name: deviceName() },
+      token: null,
+    })
+  },
+
+  /** Da photodaily.app: link monouso per entrare nel proprio diario, sul suo indirizzo. */
+  toDiary() {
+    return api<{ data: { handoff_url: string } }>('/me/al-diario', { method: 'POST' }).then(
+      (response) => response.data.handoff_url,
+    )
   },
 
   /** Stessa risposta che l'account esista o no. */

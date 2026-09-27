@@ -126,3 +126,47 @@ it('limits new diaries per ip, not attempts with errors', function () {
     $this->postJson('https://photodaily.app/api/registrati', signup(['slug' => 'rossi6', 'email' => 'anna6@example.com']))
         ->assertTooManyRequests();
 });
+
+it('says welcome only after a sign up', function () {
+    $code = handoffCode($this->postJson('https://photodaily.app/api/registrati', signup()));
+
+    $this->postJson('https://rossi.photodaily.app/api/entra', ['code' => $code])->assertJsonPath('benvenuto', true);
+});
+
+it('takes a logged in user from the main address to their own diary', function () {
+    $family = Family::factory()->create(['slug' => 'carozzi']);
+    $user = User::factory()->for($family)->create();
+    $mainToken = $user->createToken('photodaily.app')->plainTextToken;
+
+    $response = $this->withToken($mainToken)->postJson('https://photodaily.app/api/me/al-diario')->assertOk();
+    expect($response->json('data.handoff_url'))->toStartWith('https://carozzi.photodaily.app/entra#');
+
+    $this->app['auth']->forgetGuards();
+    $this->withoutToken()
+        ->postJson('https://carozzi.photodaily.app/api/entra', ['code' => handoffCode($response)])
+        ->assertOk()
+        ->assertJsonPath('user.id', $user->id)
+        ->assertJsonPath('benvenuto', false);
+});
+
+it('offers the jump to the diary only on the main address', function () {
+    $family = Family::factory()->create(['slug' => 'carozzi']);
+    $user = User::factory()->for($family)->create();
+
+    $this->withToken($user->createToken('prova')->plainTextToken)
+        ->postJson('https://carozzi.photodaily.app/api/me/al-diario')
+        ->assertNotFound();
+});
+
+it('does not open a suspended diary with a code', function () {
+    $family = Family::factory()->create(['slug' => 'carozzi']);
+    $user = User::factory()->for($family)->create();
+    $response = $this->withToken($user->createToken('prova')->plainTextToken)->postJson('https://photodaily.app/api/me/al-diario');
+
+    $family->forceFill(['suspended_at' => now()])->save();
+
+    $this->app['auth']->forgetGuards();
+    $this->withoutToken()
+        ->postJson('https://carozzi.photodaily.app/api/entra', ['code' => handoffCode($response)])
+        ->assertUnprocessable();
+});

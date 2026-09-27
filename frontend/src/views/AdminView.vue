@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { RouterLink } from 'vue-router'
+import { RouterLink, useRouter } from 'vue-router'
 
 import { admin as adminApi } from '@/api'
 import { ApiError } from '@/api/client'
@@ -16,6 +16,7 @@ import { formatShortDate } from '@/utils/date'
 /** Pannello del servizio: tutti i diari, piano, spazio, sospensione. */
 const auth = useAuthStore()
 const toasts = useToastsStore()
+const router = useRouter()
 
 const families = ref<AdminFamily[]>([])
 const plans = ref<AdminPlan[]>([])
@@ -90,6 +91,11 @@ function onPlanChange(family: AdminFamily, event: Event): void {
   void update(family, { plan: (event.target as HTMLSelectElement).value })
 }
 
+async function logout(): Promise<void> {
+  await auth.logout()
+  await router.replace({ name: 'home' })
+}
+
 async function confirmSuspend(): Promise<void> {
   if (suspending.value) {
     await update(suspending.value, { sospesa: true })
@@ -101,11 +107,22 @@ async function confirmSuspend(): Promise<void> {
 
 <template>
   <AppHeader>
-    <template #left>
-      <RouterLink :to="{ name: 'timeline' }" class="flex items-center gap-1.5 rounded-lg py-1 font-bold text-ink">
-        <AppIcon name="back" class="size-5" />
-        Timeline
+    <template #right>
+      <RouterLink
+        :to="{ name: 'my-diary' }"
+        class="flex items-center gap-1.5 rounded-xl border-2 border-line px-3 py-1.5 text-sm font-bold"
+      >
+        <AppIcon name="camera" class="size-4" />
+        Il mio diario
       </RouterLink>
+      <button
+        type="button"
+        class="flex items-center gap-1.5 rounded-xl border-2 border-line px-3 py-1.5 text-sm font-bold"
+        @click="logout"
+      >
+        <AppIcon name="logout" class="size-4" />
+        Esci
+      </button>
     </template>
   </AppHeader>
 

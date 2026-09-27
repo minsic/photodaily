@@ -8,8 +8,8 @@ import { useAuthStore } from '@/stores/auth'
 import { useToastsStore } from '@/stores/toasts'
 
 /**
- * Primo ingresso nel diario appena creato: il codice monouso arriva nel
- * frammento dell'indirizzo (#…) dalla pagina di registrazione.
+ * Ingresso nel diario col codice monouso arrivato nel frammento
+ * dell'indirizzo (#…): dopo la registrazione o da photodaily.app.
  */
 const auth = useAuthStore()
 const toasts = useToastsStore()
@@ -33,8 +33,13 @@ onMounted(async () => {
     const session = await authApi.handoff(code)
 
     auth.applySession(session)
-    toasts.success(`Il diario ${session.user.family?.name ?? ''} è pronto: carica la prima foto!`)
-    await router.replace({ name: 'upload' })
+
+    if (session.benvenuto) {
+      toasts.success(`Il diario ${session.user.family?.name ?? ''} è pronto: carica la prima foto!`)
+      await router.replace({ name: 'upload' })
+    } else {
+      await router.replace({ name: 'timeline' })
+    }
   } catch {
     failed.value = true
   }

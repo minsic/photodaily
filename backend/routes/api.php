@@ -74,6 +74,8 @@ Route::middleware(['auth:sanctum', EnsureHostFamilyMember::class, EnsureFamilyAc
     Route::delete('/me/sessioni', [ProfileController::class, 'destroyOtherSessions']);
     Route::post('/me/email', [EmailChangeController::class, 'request'])->middleware('throttle:login');
     Route::delete('/me/email', [EmailChangeController::class, 'cancel']);
+    // Da photodaily.app al sottodominio del proprio diario, senza rimettere la password.
+    Route::post('/me/al-diario', [RegistrationController::class, 'toDiary']);
 
     Route::get('/push/config', [PushController::class, 'config']);
     Route::post('/push/iscrizioni', [PushController::class, 'subscribe']);

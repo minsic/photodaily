@@ -10,24 +10,21 @@ use App\Http\Resources\UserResource;
 use App\Models\Family;
 use App\Models\Plan;
 use App\Models\User;
+use App\Services\DiaryHandoff;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class RegistrationController extends Controller
 {
-    /** Quanto resta valido il codice per entrare nel diario appena creato. */
-    private const HANDOFF_MINUTES = 5;
+    public function __construct(private readonly DiaryHandoff $handoff) {}
 
     /**
      * Crea un diario privato sul piano gratuito e il suo primo amministratore.
      *
      * Solo dall'indirizzo principale. La sessione si apre sul sottodominio
-     * nuovo (il token vive nel localStorage di quell'origine): la risposta
-     * porta lì con un codice monouso da scambiare con /api/entra.
+     * nuovo, con il codice monouso di DiaryHandoff da scambiare con /api/entra.
      */
     public function store(RegisterRequest $request): JsonResponse
     {
@@ -50,31 +47,38 @@ class RegistrationController extends Controller
             ]);
         });
 
-        $code = Str::random(48);
-        Cache::put($this->handoffKey($code), $user->id, now()->addMinutes(self::HANDOFF_MINUTES));
-
         return response()->json([
             'data' => [
                 'url' => $user->family->url(),
-                // Nel frammento: non arriva al server né finisce nei log di Caddy.
-                'handoff_url' => $user->family->url().'/entra#'.$code,
+                'handoff_url' => $this->handoff->url($user, welcome: true),
             ],
         ], 201);
     }
 
     /**
-     * Scambia il codice della registrazione con una sessione, una volta sola
-     * e solo sull'indirizzo della famiglia appena creata.
+     * Da photodaily.app al proprio diario, già dentro: il sito principale non
+     * mostra diari, rimanda ciascuno al suo indirizzo.
+     */
+    public function toDiary(Request $request): JsonResponse
+    {
+        abort_unless($this->onMainHost($request), 404);
+
+        return response()->json(['data' => ['handoff_url' => $this->handoff->url($request->user())]]);
+    }
+
+    /**
+     * Scambia il codice con una sessione, una volta sola e solo
+     * sull'indirizzo della famiglia dell'account.
      */
     public function handoff(Request $request): JsonResponse
     {
         $request->validate(['code' => ['required', 'string', 'max:100']]);
 
-        $userId = Cache::pull($this->handoffKey((string) $request->input('code')));
-        $user = $userId === null ? null : User::query()->find($userId);
+        $data = $this->handoff->redeem((string) $request->input('code'));
+        $user = $data === null ? null : User::query()->find($data['user']);
         $hostFamily = ResolveHostFamily::from($request);
 
-        if ($user === null || $hostFamily === null || $user->family_id !== $hostFamily->id) {
+        if ($user === null || $hostFamily === null || $user->family_id !== $hostFamily->id || $hostFamily->isSuspended()) {
             throw ValidationException::withMessages([
                 'code' => 'Link scaduto o già usato: entra con email e password.',
             ]);
@@ -83,16 +87,13 @@ class RegistrationController extends Controller
         return response()->json([
             'token' => $user->createToken($request->string('device_name')->limit(255)->value() ?: 'spa')->plainTextToken,
             'user' => UserResource::make($user->load('family.plan')),
+            // Diario appena creato: il frontend propone la prima foto.
+            'benvenuto' => $data['welcome'],
         ]);
     }
 
     private function onMainHost(Request $request): bool
     {
         return Family::normalizeHost($request->getHost()) === Family::mainHost();
-    }
-
-    private function handoffKey(string $code): string
-    {
-        return 'photodaily:ingresso:'.hash('sha256', $code);
     }
 }

@@ -22,6 +22,9 @@ declare module 'vue-router' {
   }
 }
 
+/** Le sole pagine che chi è entrato vede su photodaily.app (le altre sono dei diari). */
+const MAIN_HOST_PAGES = new Set(['service-admin', 'my-diary', 'profile', 'privacy', 'terms', 'cookies', 'not-found'])
+
 const router = createRouter({
   history: createWebHistory(),
   routes: [
@@ -129,6 +132,12 @@ const router = createRouter({
       name: 'settings',
       component: () => import('@/views/SettingsView.vue'),
       meta: { admin: true },
+    },
+    {
+      // Sull'indirizzo principale: porta al sottodominio del proprio diario.
+      path: '/al-mio-diario',
+      name: 'my-diary',
+      component: () => import('@/views/GoToDiaryView.vue'),
     },
     {
       path: '/admin',
@@ -250,6 +259,12 @@ router.beforeEach(async (to) => {
 
   if (!auth.isLoggedIn) {
     return { name: 'login', query: { redirect: to.fullPath } }
+  }
+
+  // photodaily.app non mostra diari: il super-admin resta sul pannello, gli
+  // altri vanno all'indirizzo del proprio diario.
+  if (site.kind === 'main' && !MAIN_HOST_PAGES.has(String(to.name))) {
+    return auth.isSuperAdmin ? { name: 'service-admin' } : { name: 'my-diary' }
   }
 
   if (to.meta.superAdmin && !(auth.isSuperAdmin && site.kind === 'main')) {
