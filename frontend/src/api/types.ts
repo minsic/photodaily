@@ -128,6 +128,17 @@ export interface LoginResponse {
   user: User
 }
 
+export interface RegisterPayload {
+  family_name: string
+  slug: string
+  name: string
+  email: string
+  password: string
+  password_confirmation: string
+  terms: boolean
+  timezone: string
+}
+
 export type InviteStatus = 'pendente' | 'accettato' | 'scaduto'
 
 export interface Invite {

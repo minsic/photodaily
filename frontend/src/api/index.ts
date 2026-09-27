@@ -19,6 +19,7 @@ import type {
   SequenceFilters,
   SequencePage,
   ReadAccess,
+  RegisterPayload,
   ReminderPreferences,
   SiteFamily,
   User,
@@ -78,6 +79,20 @@ export const auth = {
     return api<{ data: { sessioni_chiuse: number } }>('/me/sessioni', { method: 'DELETE' }).then(
       (response) => response.data,
     )
+  },
+
+  /** Nuovo diario dall'indirizzo principale: la sessione si apre poi sul suo sottodominio. */
+  register(payload: RegisterPayload) {
+    return api<{ data: { url: string; handoff_url: string } }>('/registrati', {
+      method: 'POST',
+      body: payload,
+      token: null,
+    }).then((response) => response.data)
+  },
+
+  /** Il codice monouso arrivato dalla registrazione, sull'indirizzo del diario nuovo. */
+  handoff(code: string) {
+    return api<LoginResponse>('/entra', { method: 'POST', body: { code, device_name: deviceName() }, token: null })
   },
 
   /** Stessa risposta che l'account esista o no. */

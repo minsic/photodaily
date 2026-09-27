@@ -53,6 +53,9 @@ return [
 
     'default_plan' => env('DEFAULT_PLAN', 'beta'),
 
+    // Piano assegnato a chi crea un diario da solo dalla pagina di registrazione.
+    'signup_plan' => env('SIGNUP_PLAN', 'free'),
+
     /*
     |--------------------------------------------------------------------------
     | Reserved slugs

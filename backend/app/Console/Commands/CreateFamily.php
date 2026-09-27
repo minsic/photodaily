@@ -42,11 +42,7 @@ class CreateFamily extends Command
         ];
 
         $validator = Validator::make($input, [
-            // Lo slug è un'etichetta DNS: minuscole, cifre e trattini, mai ai bordi.
-            'slug' => [
-                'required', 'regex:/^[a-z0-9][a-z0-9-]{1,28}[a-z0-9]$/',
-                Rule::notIn(Family::reservedSlugs()), Rule::unique('families', 'slug'),
-            ],
+            'slug' => Family::slugRules(),
             'name' => ['required', 'string', 'max:255'],
             'email' => [
                 'required', 'email', 'max:255', Rule::unique('users', 'email'),
@@ -62,9 +58,7 @@ class CreateFamily extends Command
                 Rule::unique('families', 'custom_domain'),
             ],
         ], [
-            'slug.regex' => 'Lo slug deve avere 3-30 caratteri fra minuscole, cifre e trattini, senza trattini ai bordi.',
-            'slug.not_in' => 'Questo slug è riservato al servizio.',
-            'slug.unique' => 'Esiste già una famiglia con questo slug.',
+            ...Family::slugMessages(),
             'email.unique' => 'Questa email ha già un account o un invito in attesa.',
             'access_mode.in' => 'La modalità di accesso può essere private o public.',
             'timezone.timezone' => 'Fuso orario non riconosciuto.',

@@ -37,6 +37,20 @@ const router = createRouter({
       meta: { guest: true },
     },
     {
+      // Solo sull'indirizzo principale: crea un diario nuovo.
+      path: '/registrati',
+      name: 'register',
+      component: () => import('@/views/RegisterView.vue'),
+      meta: { guest: true },
+    },
+    {
+      // Sul sottodominio appena creato, col codice della registrazione in #…
+      path: '/entra',
+      name: 'handoff',
+      component: () => import('@/views/HandoffView.vue'),
+      meta: { guest: true },
+    },
+    {
       path: '/privacy',
       name: 'privacy',
       component: () => import('@/views/legal/PrivacyView.vue'),
@@ -217,8 +231,13 @@ router.beforeEach(async (to) => {
     return { name: 'home' }
   }
 
+  // Un diario nuovo si crea dall'indirizzo principale, non da quello di un altro.
+  if (to.name === 'register' && site.kind === 'family') {
+    return { name: 'login' }
+  }
+
   if (to.meta.guest) {
-    return (to.name === 'login' || to.name === 'home') && auth.isLoggedIn ? { name: 'timeline' } : true
+    return ['login', 'home', 'register'].includes(String(to.name)) && auth.isLoggedIn ? { name: 'timeline' } : true
   }
 
   if (!auth.isLoggedIn) {

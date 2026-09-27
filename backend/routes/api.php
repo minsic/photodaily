@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\PublicAccessController;
 use App\Http\Controllers\Api\PublicPhotoController;
 use App\Http\Controllers\Api\PushController;
+use App\Http\Controllers\Api\RegistrationController;
 use App\Http\Controllers\Api\SiteController;
 use App\Http\Middleware\EnsureHostFamilyMember;
 use App\Http\Middleware\EnsurePublicFamilyAccess;
@@ -24,6 +25,10 @@ Route::get('/site', [SiteController::class, 'show'])->middleware('throttle:publi
 Route::get('/tls/ask', [SiteController::class, 'tlsAsk']);
 
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login');
+
+// Nuovo diario dall'indirizzo principale, poi ingresso sul sottodominio creato.
+Route::post('/registrati', [RegistrationController::class, 'store'])->middleware('throttle:signup');
+Route::post('/entra', [RegistrationController::class, 'handoff'])->middleware('throttle:invites');
 
 Route::middleware('throttle:password-reset')->group(function () {
     Route::post('/password/dimenticata', [PasswordResetController::class, 'forgot']);

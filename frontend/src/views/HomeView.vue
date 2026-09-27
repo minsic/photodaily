@@ -44,8 +44,15 @@ const points = [
       </ul>
 
       <RouterLink
-        :to="{ name: 'login' }"
+        :to="{ name: 'register' }"
         class="mt-8 block rounded-xl bg-brick px-4 py-3 text-center font-bold text-white"
+      >
+        Crea il tuo diario
+      </RouterLink>
+      <p class="mt-2 text-center text-sm text-muted">Gratis fino a 100 foto.</p>
+      <RouterLink
+        :to="{ name: 'login' }"
+        class="mt-4 block rounded-xl border-2 border-line px-4 py-2.5 text-center font-bold"
       >
         Entra nel tuo diario
       </RouterLink>

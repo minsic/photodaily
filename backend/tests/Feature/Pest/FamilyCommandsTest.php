@@ -74,12 +74,12 @@ it('rejects bad slugs, reserved ones, taken emails and wrong options', function 
 
     expect(Family::where('name', 'Prova')->exists())->toBeFalse();
 })->with([
-    'troppo corto' => [['slug' => 'ab'], 'Lo slug deve avere 3-30 caratteri'],
-    'troppo lungo' => [['slug' => str_repeat('a', 31)], 'Lo slug deve avere 3-30 caratteri'],
-    'maiuscole' => [['slug' => 'Carozzi'], 'Lo slug deve avere 3-30 caratteri'],
-    'trattino al bordo' => [['slug' => 'carozzi-'], 'Lo slug deve avere 3-30 caratteri'],
-    'riservato' => [['slug' => 'staging'], 'Questo slug è riservato'],
-    'già usato' => [['slug' => 'giopellino'], 'Esiste già una famiglia'],
+    'troppo corto' => [['slug' => 'ab'], 'deve avere 3-30 caratteri'],
+    'troppo lungo' => [['slug' => str_repeat('a', 31)], 'deve avere 3-30 caratteri'],
+    'maiuscole' => [['slug' => 'Carozzi'], 'deve avere 3-30 caratteri'],
+    'trattino al bordo' => [['slug' => 'carozzi-'], 'deve avere 3-30 caratteri'],
+    'riservato' => [['slug' => 'staging'], 'Questo indirizzo è riservato'],
+    'già usato' => [['slug' => 'giopellino'], 'Questo indirizzo è già preso'],
     'email con account' => [['email' => 'preso@example.com'], 'già un account o un invito'],
     'email già invitata' => [['email' => 'invitato@example.com'], 'già un account o un invito'],
     'modalità password' => [['--access-mode' => 'password'], 'private o public'],

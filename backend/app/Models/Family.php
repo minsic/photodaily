@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 use InvalidArgumentException;
 
 #[Fillable(['name', 'slug', 'custom_domain', 'plan_id', 'protagonist_name', 'protagonist_birthdate', 'timezone'])]
@@ -30,6 +31,32 @@ class Family extends Model
     public static function reservedSlugs(): array
     {
         return config('photodaily.reserved_slugs');
+    }
+
+    /**
+     * Lo slug è un'etichetta DNS (diventa il sottodominio): minuscole, cifre
+     * e trattini, mai ai bordi, e non già preso o riservato.
+     *
+     * @return list<mixed>
+     */
+    public static function slugRules(): array
+    {
+        return [
+            'required', 'string', 'regex:/^[a-z0-9][a-z0-9-]{1,28}[a-z0-9]$/',
+            Rule::notIn(static::reservedSlugs()), Rule::unique('families', 'slug'),
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public static function slugMessages(string $field = 'slug'): array
+    {
+        return [
+            "{$field}.regex" => "L'indirizzo deve avere 3-30 caratteri fra minuscole, cifre e trattini, senza trattini all'inizio o alla fine.",
+            "{$field}.not_in" => 'Questo indirizzo è riservato al servizio.',
+            "{$field}.unique" => 'Questo indirizzo è già preso da un altro diario.',
+        ];
     }
 
     /**

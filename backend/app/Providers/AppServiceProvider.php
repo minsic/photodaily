@@ -42,6 +42,16 @@ class AppServiceProvider extends ServiceProvider
             ];
         });
 
+        // Registrazione: qualche tentativo per correggere il modulo, pochi diari per IP.
+        RateLimiter::for('signup', function (Request $request) {
+            return [
+                Limit::perMinute(10)->by($request->ip()),
+                Limit::perDay(5)->by('diari|'.$request->ip())->after(
+                    fn ($response) => $response->getStatusCode() === 201,
+                ),
+            ];
+        });
+
         RateLimiter::for('invites', function (Request $request) {
             return Limit::perMinute(10)->by($request->ip());
         });
