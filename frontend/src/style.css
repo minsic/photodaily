@@ -29,9 +29,11 @@
   --color-line: #b3c8d6;
 }
 
-/* Il tema scuro ridefinisce gli stessi token: i componenti non cambiano. */
+/* Il tema scuro ridefinisce gli stessi token: i componenti non cambiano.
+   Su :root e non con un @theme annidato: Tailwind porta ogni @theme fuori
+   dalla media query, e così i colori scuri valevano anche col tema chiaro. */
 @media (prefers-color-scheme: dark) {
-  @theme {
+  :root {
     --color-paper: #14191d;
     --color-card: #1d242a;
     --color-ink: #eef4f8;
