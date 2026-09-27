@@ -45,9 +45,18 @@ class AuthController extends Controller
         ]);
     }
 
+    /**
+     * Chiude la sessione corrente e quelle collegate dal passaggio fra
+     * photodaily.app e il diario (vedi DiaryHandoff), in tutti e due i versi.
+     */
     public function logout(Request $request): Response
     {
-        $request->user()->currentAccessToken()->delete();
+        $current = $request->user()->currentAccessToken();
+        $origins = array_filter([$current->getKey(), $current->linked_token_id]);
+
+        $request->user()->tokens()
+            ->where(fn ($query) => $query->whereIn('id', $origins)->orWhereIn('linked_token_id', $origins))
+            ->delete();
 
         return response()->noContent();
     }

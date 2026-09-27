@@ -170,3 +170,34 @@ it('does not open a suspended diary with a code', function () {
         ->postJson('https://carozzi.photodaily.app/api/entra', ['code' => handoffCode($response)])
         ->assertUnprocessable();
 });
+
+it('closes the linked session on photodaily.app when leaving the diary, and the other way round', function () {
+    $family = Family::factory()->create(['slug' => 'carozzi']);
+    $user = User::factory()->for($family)->create();
+    $phone = $user->createToken('telefono')->plainTextToken;
+
+    /** Entra su photodaily.app, passa al diario e restituisce i due token. */
+    $enter = function () use ($user): array {
+        $main = $user->createToken('photodaily.app')->plainTextToken;
+        $jump = $this->withToken($main)->postJson('https://photodaily.app/api/me/al-diario');
+        $this->app['auth']->forgetGuards();
+        $diary = $this->withoutToken()->postJson('https://carozzi.photodaily.app/api/entra', ['code' => handoffCode($jump)])->json('token');
+        $this->app['auth']->forgetGuards();
+
+        return [$main, $diary];
+    };
+
+    [$main, $diary] = $enter();
+    $this->withToken($diary)->postJson('https://carozzi.photodaily.app/api/logout')->assertNoContent();
+    $this->app['auth']->forgetGuards();
+    $this->withToken($main)->getJson('https://photodaily.app/api/me')->assertUnauthorized();
+
+    [$main, $diary] = $enter();
+    $this->withToken($main)->postJson('https://photodaily.app/api/logout')->assertNoContent();
+    $this->app['auth']->forgetGuards();
+    $this->withToken($diary)->getJson('https://carozzi.photodaily.app/api/me')->assertUnauthorized();
+
+    // Le sessioni degli altri dispositivi restano aperte.
+    $this->app['auth']->forgetGuards();
+    $this->withToken($phone)->getJson('https://carozzi.photodaily.app/api/me')->assertOk();
+});

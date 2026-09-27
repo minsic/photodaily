@@ -18,12 +18,17 @@ class DiaryHandoff
 
     /**
      * @param  bool  $welcome  diario appena creato: all'arrivo si propone la prima foto
+     * @param  int|null  $fromToken  sessione di photodaily.app da cui si parte, da chiudere insieme
      */
-    public function url(User $user, bool $welcome = false): string
+    public function url(User $user, bool $welcome = false, ?int $fromToken = null): string
     {
         $code = Str::random(48);
 
-        Cache::put($this->key($code), ['user' => $user->id, 'welcome' => $welcome], now()->addMinutes(self::MINUTES));
+        Cache::put(
+            $this->key($code),
+            ['user' => $user->id, 'welcome' => $welcome, 'from_token' => $fromToken],
+            now()->addMinutes(self::MINUTES),
+        );
 
         return $user->family->url().'/entra#'.$code;
     }
@@ -31,7 +36,7 @@ class DiaryHandoff
     /**
      * Una volta sola: dopo la lettura il codice non vale più.
      *
-     * @return array{user: int, welcome: bool}|null
+     * @return array{user: int, welcome: bool, from_token: int|null}|null
      */
     public function redeem(string $code): ?array
     {

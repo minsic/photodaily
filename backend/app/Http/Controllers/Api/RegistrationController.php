@@ -63,7 +63,11 @@ class RegistrationController extends Controller
     {
         abort_unless($this->onMainHost($request), 404);
 
-        return response()->json(['data' => ['handoff_url' => $this->handoff->url($request->user())]]);
+        $user = $request->user();
+
+        return response()->json([
+            'data' => ['handoff_url' => $this->handoff->url($user, fromToken: $user->currentAccessToken()->getKey())],
+        ]);
     }
 
     /**
@@ -84,8 +88,14 @@ class RegistrationController extends Controller
             ]);
         }
 
+        $token = $user->createToken($request->string('device_name')->limit(255)->value() ?: 'spa');
+
+        if ($data['from_token'] ?? null) {
+            $token->accessToken->forceFill(['linked_token_id' => $data['from_token']])->save();
+        }
+
         return response()->json([
-            'token' => $user->createToken($request->string('device_name')->limit(255)->value() ?: 'spa')->plainTextToken,
+            'token' => $token->plainTextToken,
             'user' => UserResource::make($user->load('family.plan')),
             // Diario appena creato: il frontend propone la prima foto.
             'benvenuto' => $data['welcome'],
