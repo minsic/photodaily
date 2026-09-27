@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 
 import { ApiError } from '@/api/client'
+import LegalLinks from '@/components/LegalLinks.vue'
 import AppLogo from '@/components/logo/AppLogo.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useSiteStore } from '@/stores/site'
@@ -94,5 +95,9 @@ async function onSubmit(): Promise<void> {
         </RouterLink>
       </p>
     </div>
+
+    <footer class="mt-10">
+      <LegalLinks />
+    </footer>
   </main>
 </template>

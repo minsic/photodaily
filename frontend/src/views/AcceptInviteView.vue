@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { RouterLink, useRouter } from 'vue-router'
 
 import { invites as invitesApi } from '@/api'
 import { ApiError, type ValidationErrors } from '@/api/client'
 import type { InvitePreview } from '@/api/types'
 import AppSpinner from '@/components/AppSpinner.vue'
+import LegalLinks from '@/components/LegalLinks.vue'
 import AppLogo from '@/components/logo/AppLogo.vue'
 import { useNoIndex } from '@/composables/useNoIndex'
 import { useAuthStore } from '@/stores/auth'
@@ -156,8 +157,16 @@ function fieldError(field: string): string | undefined {
           <p class="text-center text-xs text-muted">
             L'invito scade il {{ formatShortDate(invite.expires_at.slice(0, 10)) }}.
           </p>
+          <p class="text-center text-xs text-muted">
+            Entrando accetti i <RouterLink :to="{ name: 'terms' }" class="underline">termini</RouterLink> e
+            l'<RouterLink :to="{ name: 'privacy' }" class="underline">informativa sulla privacy</RouterLink>.
+          </p>
         </form>
       </template>
     </div>
+
+    <footer class="mt-10">
+      <LegalLinks />
+    </footer>
   </main>
 </template>

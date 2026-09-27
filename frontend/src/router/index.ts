@@ -30,6 +30,31 @@ const router = createRouter({
       meta: { guest: true },
     },
     {
+      // Sull'indirizzo principale, per chi non è entrato, al posto della timeline.
+      path: '/benvenuto',
+      name: 'home',
+      component: () => import('@/views/HomeView.vue'),
+      meta: { guest: true },
+    },
+    {
+      path: '/privacy',
+      name: 'privacy',
+      component: () => import('@/views/legal/PrivacyView.vue'),
+      meta: { guest: true },
+    },
+    {
+      path: '/termini',
+      name: 'terms',
+      component: () => import('@/views/legal/TermsView.vue'),
+      meta: { guest: true },
+    },
+    {
+      path: '/cookie',
+      name: 'cookies',
+      component: () => import('@/views/legal/CookieView.vue'),
+      meta: { guest: true },
+    },
+    {
       path: '/',
       name: 'timeline',
       component: TimelineView,
@@ -187,8 +212,13 @@ router.beforeEach(async (to) => {
     return { name: 'public-timeline', params: { slug: site.family.slug } }
   }
 
+  // Sull'indirizzo principale chi non è entrato vede cos'è PhotoDaily.
+  if (to.name === 'timeline' && !auth.isLoggedIn && site.kind === 'main') {
+    return { name: 'home' }
+  }
+
   if (to.meta.guest) {
-    return to.name === 'login' && auth.isLoggedIn ? { name: 'timeline' } : true
+    return (to.name === 'login' || to.name === 'home') && auth.isLoggedIn ? { name: 'timeline' } : true
   }
 
   if (!auth.isLoggedIn) {
