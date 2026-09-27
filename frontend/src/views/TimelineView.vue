@@ -19,6 +19,7 @@ import { useIncomingFilesStore } from '@/stores/incomingFiles'
 import { usePhotosStore } from '@/stores/photos'
 import { describeStorage } from '@/utils/quota'
 import { withYearBreaks, type TimelineOrder } from '@/utils/timelineOrder'
+import { PHOTO_ACCEPT } from '@/utils/photoAccept'
 
 const auth = useAuthStore()
 const photos = usePhotosStore()
@@ -102,7 +103,7 @@ async function logout(): Promise<void> {
       >
         <AppIcon name="plus" class="size-4" />
         Carica
-        <input type="file" accept="image/*" class="sr-only" @change="onQuickPick" />
+        <input type="file" :accept="PHOTO_ACCEPT" class="sr-only" @change="onQuickPick" />
       </label>
 
       <button

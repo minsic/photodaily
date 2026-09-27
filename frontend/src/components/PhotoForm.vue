@@ -6,6 +6,7 @@ import type { Photo, PhotoPayload } from '@/api/types'
 import AppIcon from '@/components/AppIcon.vue'
 import CaptionTextarea from '@/components/CaptionTextarea.vue'
 import { useFamilyToday } from '@/composables/useFamilyToday'
+import { PHOTO_ACCEPT } from '@/utils/photoAccept'
 import { readPhotoDate } from '@/utils/photoDate'
 
 const props = withDefaults(
@@ -34,6 +35,8 @@ const { today, timezone } = useFamilyToday()
  */
 const dateTouched = ref(Boolean(props.initialDate) || Boolean(props.photo))
 const dateFromPhoto = ref(false)
+/** Nella foto scelta non c'era la data di scatto: la data proposta va controllata. */
+const dateMissing = ref(false)
 
 const form = reactive({
   data: props.photo?.data ?? props.initialDate ?? today(),
@@ -65,6 +68,7 @@ function useFile(file: File | null): void {
   image.value = file
   preview.value = file ? URL.createObjectURL(file) : null
   missingImage.value = false
+  dateMissing.value = false
 
   if (file && props.withImage && !dateTouched.value) {
     void applyDateFromPhoto(file)
@@ -75,15 +79,23 @@ async function applyDateFromPhoto(file: File): Promise<void> {
   const { date, certain } = await readPhotoDate(file, timezone())
 
   // Solo una data di scatto vera, non nel futuro, e se nel frattempo nessuno l'ha cambiata.
-  if (certain && date <= today() && !dateTouched.value && image.value === file) {
+  if (dateTouched.value || image.value !== file) {
+    return
+  }
+
+  if (certain && date <= today()) {
     form.data = date
     dateFromPhoto.value = true
+  } else {
+    dateFromPhoto.value = false
+    dateMissing.value = true
   }
 }
 
 function onDateInput(): void {
   dateTouched.value = true
   dateFromPhoto.value = false
+  dateMissing.value = false
 }
 
 if (props.initialFile) {
@@ -138,7 +150,7 @@ function fieldError(name: string): string | undefined {
         </template>
         <input
           type="file"
-          accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
+          :accept="PHOTO_ACCEPT"
           class="sr-only"
           @change="onFileChange"
         />
@@ -161,6 +173,9 @@ function fieldError(name: string): string | undefined {
         @input="onDateInput"
       />
       <p v-if="dateFromPhoto" class="mt-1 text-sm text-muted">Il giorno in cui è stata scattata.</p>
+      <p v-else-if="dateMissing" class="mt-1 text-sm text-brick" role="status">
+        Nella foto non c'è la data di scatto: controlla che il giorno sia giusto.
+      </p>
       <p v-if="fieldError('data')" class="mt-1 text-sm text-brick">{{ fieldError('data') }}</p>
     </div>
 

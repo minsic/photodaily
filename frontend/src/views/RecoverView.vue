@@ -28,6 +28,7 @@ import { isDebug } from '@/utils/debug'
 import { uploadBlocked } from '@/utils/quota'
 import { describeSaving, shrinkForUpload } from '@/utils/shrinkImage'
 import { requeueFailed, runQueue, type QueueTask } from '@/utils/uploadQueue'
+import { PHOTO_ACCEPT } from '@/utils/photoAccept'
 
 /**
  * Recupera i giorni mancanti: si scelgono tante foto dalla galleria, si
@@ -300,7 +301,7 @@ onBeforeUnmount(() => {
       >
         <AppIcon name="camera" class="size-6" />
         Scegli le foto
-        <input type="file" accept="image/*" multiple class="sr-only" @change="onPick" />
+        <input type="file" :accept="PHOTO_ACCEPT" multiple class="sr-only" @change="onPick" />
       </label>
     </section>
 
@@ -411,7 +412,7 @@ onBeforeUnmount(() => {
         <div class="mx-auto flex max-w-2xl items-center justify-between gap-3">
           <label class="cursor-pointer text-sm font-bold text-muted underline">
             Scegline altre
-            <input type="file" accept="image/*" multiple class="sr-only" @change="onPick" />
+            <input type="file" :accept="PHOTO_ACCEPT" multiple class="sr-only" @change="onPick" />
           </label>
           <button
             type="button"
