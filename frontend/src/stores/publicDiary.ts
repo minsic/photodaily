@@ -5,6 +5,7 @@ import { publicDiary as publicApi } from '@/api'
 import { ApiError } from '@/api/client'
 import type { Photo, Protagonist, YearSummary } from '@/api/types'
 import { usePagedPhotos } from '@/composables/usePagedPhotos'
+import { comparatorFor, readTimelineOrder, saveTimelineOrder, type TimelineOrder } from '@/utils/timelineOrder'
 import { signedUrlsAreStale } from '@/utils/signedUrls'
 
 /**
@@ -28,7 +29,9 @@ export const usePublicDiaryStore = defineStore('public-diary', () => {
   const years = ref<YearSummary[]>([])
   /** Per l'età sotto le foto: arriva solo quando si ha accesso al diario. */
   const protagonist = ref<Protagonist | null>(null)
+  /** null = tutti gli anni, come nella timeline privata. */
   const anno = ref<number | null>(null)
+  const ordine = ref<TimelineOrder>(readTimelineOrder())
   const soloSpeciali = ref(false)
 
   const loading = ref(false)
@@ -36,13 +39,16 @@ export const usePublicDiaryStore = defineStore('public-diary', () => {
   const unlocking = ref(false)
   const unlockError = ref<string | null>(null)
 
-  const paged = usePagedPhotos((page, perPage) =>
-    publicApi.list(slug.value, token.value, {
-      anno: anno.value,
-      speciali: soloSpeciali.value,
-      page,
-      per_page: perPage,
-    }),
+  const paged = usePagedPhotos(
+    (page, perPage) =>
+      publicApi.list(slug.value, token.value, {
+        anno: anno.value,
+        speciali: soloSpeciali.value,
+        ordine: ordine.value,
+        page,
+        per_page: perPage,
+      }),
+    () => comparatorFor(ordine.value),
   )
   const items = paged.items
 
@@ -75,7 +81,7 @@ export const usePublicDiaryStore = defineStore('public-diary', () => {
 
     try {
       years.value = await publicApi.years(slug.value, token.value)
-      anno.value = years.value[0]?.anno ?? null
+      anno.value = null
       state.value = 'ready'
 
       protagonist.value = await publicApi
@@ -172,6 +178,12 @@ export const usePublicDiaryStore = defineStore('public-diary', () => {
     void load()
   }
 
+  function setOrdine(value: TimelineOrder): void {
+    ordine.value = value
+    saveTimelineOrder(value)
+    void load()
+  }
+
   function setSoloSpeciali(value: boolean): void {
     soloSpeciali.value = value
     void load()
@@ -223,6 +235,7 @@ export const usePublicDiaryStore = defineStore('public-diary', () => {
     years,
     protagonist,
     anno,
+    ordine,
     soloSpeciali,
     loading,
     loadingMore: paged.loadingMore,
@@ -239,6 +252,7 @@ export const usePublicDiaryStore = defineStore('public-diary', () => {
     load,
     loadMore,
     setAnno,
+    setOrdine,
     setSoloSpeciali,
     find,
     photo,

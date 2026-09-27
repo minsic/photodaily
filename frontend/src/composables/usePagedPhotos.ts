@@ -1,6 +1,7 @@
 import { computed, ref } from 'vue'
 
 import type { Paginated, Photo } from '@/api/types'
+import { byDateDesc } from '@/utils/timelineOrder'
 
 /** Foto per pagina: la timeline ne carica 50 alla volta mentre si scorre. */
 export const PAGE_SIZE = 50
@@ -8,20 +9,19 @@ export const PAGE_SIZE = 50
 /** Limite di per_page lato API (IndexPhotosRequest). */
 const MAX_PER_PAGE = 500
 
-/** Ordine della timeline: data più recente prima, a parità di data l'ultima caricata. */
-export function byDateDesc(a: Photo, b: Photo): number {
-  return a.data === b.data ? b.id.localeCompare(a.id) : b.data.localeCompare(a.data)
-}
-
 /**
  * Elenco di foto caricato a pagine, condiviso dalla timeline privata e da
- * quella pubblica. `fetchPage` fa la richiesta con i filtri correnti.
+ * quella pubblica. `fetchPage` fa la richiesta con i filtri correnti;
+ * `compare` è l'ordine con cui l'API le restituisce (dal più recente o no).
  *
  * Ogni caricamento da capo apre una "generazione": le risposte di pagine
  * chieste prima di un cambio di filtri arrivano tardi e vengono scartate,
  * invece di mescolare anni diversi.
  */
-export function usePagedPhotos(fetchPage: (page: number, perPage: number) => Promise<Paginated<Photo>>) {
+export function usePagedPhotos(
+  fetchPage: (page: number, perPage: number) => Promise<Paginated<Photo>>,
+  compare: () => (a: Photo, b: Photo) => number = () => byDateDesc,
+) {
   const items = ref<Photo[]>([])
   const page = ref(0)
   const lastPage = ref(0)
@@ -72,7 +72,7 @@ export function usePagedPhotos(fetchPage: (page: number, perPage: number) => Pro
       // scivolate di una posizione: i doppioni si scartano.
       const known = new Set(items.value.map((photo) => photo.id))
 
-      items.value = [...items.value, ...response.data.filter((photo) => !known.has(photo.id))].sort(byDateDesc)
+      items.value = [...items.value, ...response.data.filter((photo) => !known.has(photo.id))].sort(compare())
       page.value = response.meta.current_page
       lastPage.value = response.meta.last_page
     } catch {
@@ -107,17 +107,17 @@ export function usePagedPhotos(fetchPage: (page: number, perPage: number) => Pro
   }
 
   /**
-   * Inserisce una foto nuova o modificata al suo posto. Se è più vecchia
-   * dell'ultima caricata e ci sono altre pagine, arriverà con lo scorrimento.
+   * Inserisce una foto nuova o modificata al suo posto. Se va dopo l'ultima
+   * caricata e ci sono altre pagine, arriverà con lo scorrimento.
    */
   function insertSorted(photo: Photo): void {
     const last = items.value[items.value.length - 1]
 
-    if (hasMore.value && last && byDateDesc(photo, last) > 0) {
+    if (hasMore.value && last && compare()(photo, last) > 0) {
       return
     }
 
-    items.value = [...items.value, photo].sort(byDateDesc)
+    items.value = [...items.value, photo].sort(compare())
   }
 
   function clear(): void {

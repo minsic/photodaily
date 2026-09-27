@@ -1,15 +1,20 @@
 <script setup lang="ts">
+import { computed } from 'vue'
+
 import type { YearSummary } from '@/api/types'
 import AppIcon from '@/components/AppIcon.vue'
+import type { TimelineOrder } from '@/utils/timelineOrder'
 
 /**
  * Barra filtri senza stato: la timeline autenticata e quella pubblica le
  * passano i propri valori. La vista pubblica nasconde il filtro bozze.
  */
-withDefaults(
+const props = withDefaults(
   defineProps<{
     years: YearSummary[]
+    /** null = tutti gli anni. */
     anno: number | null
+    ordine: TimelineOrder
     speciali: boolean
     bozze?: boolean
     withDrafts?: boolean
@@ -18,13 +23,18 @@ withDefaults(
 )
 
 const emit = defineEmits<{
-  'update:anno': [value: number]
+  'update:anno': [value: number | null]
+  'update:ordine': [value: TimelineOrder]
   'update:speciali': [value: boolean]
   'update:bozze': [value: boolean]
 }>()
 
+const total = computed(() => props.years.reduce((sum, year) => sum + year.foto, 0))
+
 function onYearChange(event: Event): void {
-  emit('update:anno', Number((event.target as HTMLSelectElement).value))
+  const value = (event.target as HTMLSelectElement).value
+
+  emit('update:anno', value === '' ? null : Number(value))
 }
 </script>
 
@@ -40,10 +50,21 @@ function onYearChange(event: Event): void {
     >
       <!-- Il popup nativo non eredita il tema: senza colori espliciti nel
            dark diventa testo chiaro su fondo bianco. -->
+      <option value="" class="bg-card text-ink">Tutti gli anni · {{ total }} foto</option>
       <option v-for="year in years" :key="year.anno" :value="year.anno" class="bg-card text-ink">
         {{ year.anno }} · {{ year.foto }} foto
       </option>
     </select>
+
+    <button
+      type="button"
+      class="flex items-center gap-1.5 rounded-full border-2 border-line px-3 py-1.5 text-sm font-bold text-muted transition hover:text-ink"
+      :title="ordine === 'desc' ? 'Mostra dal primo giorno' : 'Mostra dal più recente'"
+      @click="emit('update:ordine', ordine === 'desc' ? 'asc' : 'desc')"
+    >
+      <AppIcon name="sort" class="size-4" />
+      {{ ordine === 'desc' ? 'Dal più recente' : 'Dal primo giorno' }}
+    </button>
 
     <button
       type="button"

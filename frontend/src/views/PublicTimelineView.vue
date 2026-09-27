@@ -9,10 +9,12 @@ import OnThisDayStrip from '@/components/OnThisDayStrip.vue'
 import ViewSwitch from '@/components/ViewSwitch.vue'
 import AppLogo from '@/components/logo/AppLogo.vue'
 import TimelineItem from '@/components/TimelineItem.vue'
+import YearBreak from '@/components/YearBreak.vue'
 import { useInfiniteScroll } from '@/composables/useInfiniteScroll'
 import { useRefreshWhenVisible } from '@/composables/useRefreshWhenVisible'
 import { useNoIndex } from '@/composables/useNoIndex'
 import { usePublicDiaryStore } from '@/stores/publicDiary'
+import { withYearBreaks } from '@/utils/timelineOrder'
 
 /**
  * Diario in sola lettura: nessun pulsante di caricamento, modifica o
@@ -99,13 +101,15 @@ watch(() => props.slug, (slug) => diary.open(slug))
       <FilterBar
         :years="diary.years"
         :anno="diary.anno"
+        :ordine="diary.ordine"
         :speciali="diary.soloSpeciali"
         :with-drafts="false"
         @update:anno="diary.setAnno"
+        @update:ordine="diary.setOrdine"
         @update:speciali="diary.setSoloSpeciali"
       />
 
-      <OnThisDayStrip />
+      <OnThisDayStrip v-if="diary.ordine === 'desc'" />
 
       <AppSpinner v-if="diary.loading" />
 
@@ -120,14 +124,15 @@ watch(() => props.slug, (slug) => diary.open(slug))
 
       <template v-else>
         <ul class="mt-2">
-          <TimelineItem
-            v-for="photo in diary.items"
-            :key="photo.id"
-            :photo="photo"
-            :to="{ name: 'public-photo', params: { slug, id: photo.id } }"
-            :refresh="diary.refreshImage"
-            :protagonist="diary.protagonist"
-          />
+          <template v-for="{ photo, year } in withYearBreaks(diary.items)" :key="photo.id">
+            <YearBreak v-if="year !== null && diary.anno === null" :year="year" />
+            <TimelineItem
+              :photo="photo"
+              :to="{ name: 'public-photo', params: { slug, id: photo.id } }"
+              :refresh="diary.refreshImage"
+              :protagonist="diary.protagonist"
+            />
+          </template>
         </ul>
 
         <div ref="sentinel" aria-hidden="true" />

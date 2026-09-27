@@ -4,15 +4,18 @@ import { computed, ref } from 'vue'
 import { photos as photosApi } from '@/api'
 import { ApiError } from '@/api/client'
 import type { Photo, YearSummary } from '@/api/types'
-import { byDateDesc, usePagedPhotos } from '@/composables/usePagedPhotos'
+import { usePagedPhotos } from '@/composables/usePagedPhotos'
 import { yearOf } from '@/utils/date'
+import { comparatorFor, readTimelineOrder, saveTimelineOrder, type TimelineOrder } from '@/utils/timelineOrder'
 import { signedUrlsAreStale } from '@/utils/signedUrls'
 
 type Stato = 'pubblicate' | 'bozze'
 
 export const usePhotosStore = defineStore('photos', () => {
   const years = ref<YearSummary[]>([])
+  /** null = tutti gli anni: si entra vedendo tutto il diario. */
   const anno = ref<number | null>(null)
+  const ordine = ref<TimelineOrder>(readTimelineOrder())
   const soloSpeciali = ref(false)
   const stato = ref<Stato>('pubblicate')
 
@@ -21,29 +24,33 @@ export const usePhotosStore = defineStore('photos', () => {
   /** Filtri con cui è stato riempito l'elenco: evita richieste inutili. */
   const loadedKey = ref<string | null>(null)
 
-  const filterKey = computed(() => `${anno.value}|${soloSpeciali.value}|${stato.value}`)
+  const filterKey = computed(() => `${anno.value}|${soloSpeciali.value}|${stato.value}|${ordine.value}`)
   const hasFilters = computed(() => soloSpeciali.value || stato.value === 'bozze')
 
-  const paged = usePagedPhotos((page, perPage) =>
-    photosApi.list({
-      anno: stato.value === 'bozze' ? null : anno.value,
-      speciali: soloSpeciali.value,
-      stato: stato.value,
-      page,
-      per_page: perPage,
-    }),
+  const paged = usePagedPhotos(
+    (page, perPage) =>
+      photosApi.list({
+        anno: stato.value === 'bozze' ? null : anno.value,
+        speciali: soloSpeciali.value,
+        stato: stato.value,
+        ordine: ordine.value,
+        page,
+        per_page: perPage,
+      }),
+    () => comparatorFor(ordine.value),
   )
   const items = paged.items
 
   /**
-   * Anni con foto pubblicate. Si parte sempre dal più recente: l'anno scelto
-   * resta solo finché l'app è aperta (tornando da una foto si ritrova).
+   * Anni con foto pubblicate, per la tendina. Si parte da tutti gli anni:
+   * l'anno scelto resta solo finché l'app è aperta (tornando da una foto
+   * si ritrova), e se non ha più foto si torna a tutti.
    */
   async function loadYears(): Promise<void> {
     years.value = await photosApi.years()
 
-    if (anno.value === null || !years.value.some((year) => year.anno === anno.value)) {
-      anno.value = years.value[0]?.anno ?? null
+    if (anno.value !== null && !years.value.some((year) => year.anno === anno.value)) {
+      anno.value = null
     }
   }
 
@@ -96,6 +103,11 @@ export const usePhotosStore = defineStore('photos', () => {
     anno.value = value
   }
 
+  function setOrdine(value: TimelineOrder): void {
+    ordine.value = value
+    saveTimelineOrder(value)
+  }
+
   function toggleSpeciali(): void {
     soloSpeciali.value = !soloSpeciali.value
   }
@@ -126,7 +138,7 @@ export const usePhotosStore = defineStore('photos', () => {
 
     if (belongs) {
       items.value[index] = { ...items.value[index], ...photo }
-      items.value.sort(byDateDesc)
+      items.value.sort(comparatorFor(ordine.value))
     } else {
       items.value.splice(index, 1)
     }
@@ -198,6 +210,7 @@ export const usePhotosStore = defineStore('photos', () => {
     items,
     years,
     anno,
+    ordine,
     soloSpeciali,
     stato,
     loading,
@@ -211,6 +224,7 @@ export const usePhotosStore = defineStore('photos', () => {
     loadMore,
     invalidate,
     setAnno,
+    setOrdine,
     toggleSpeciali,
     setStato,
     find,

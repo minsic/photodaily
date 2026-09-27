@@ -10,6 +10,7 @@ import AppSpinner from '@/components/AppSpinner.vue'
 import FilterBar from '@/components/FilterBar.vue'
 import OnThisDayStrip from '@/components/OnThisDayStrip.vue'
 import ViewSwitch from '@/components/ViewSwitch.vue'
+import YearBreak from '@/components/YearBreak.vue'
 import TimelineItem from '@/components/TimelineItem.vue'
 import { useInfiniteScroll } from '@/composables/useInfiniteScroll'
 import { useRefreshWhenVisible } from '@/composables/useRefreshWhenVisible'
@@ -17,6 +18,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useIncomingFilesStore } from '@/stores/incomingFiles'
 import { usePhotosStore } from '@/stores/photos'
 import { describeStorage } from '@/utils/quota'
+import { withYearBreaks, type TimelineOrder } from '@/utils/timelineOrder'
 
 const auth = useAuthStore()
 const photos = usePhotosStore()
@@ -53,8 +55,13 @@ useRefreshWhenVisible(() => photos.refreshIfStale())
 const sentinel = ref<HTMLElement | null>(null)
 useInfiniteScroll(sentinel, () => photos.loadMore(), () => photos.hasMore && !photos.moreError)
 
-function onAnno(anno: number): void {
+function onAnno(anno: number | null): void {
   photos.setAnno(anno)
+  void photos.load()
+}
+
+function onOrdine(ordine: TimelineOrder): void {
+  photos.setOrdine(ordine)
   void photos.load()
 }
 
@@ -177,15 +184,17 @@ async function logout(): Promise<void> {
     <FilterBar
       :years="photos.years"
       :anno="photos.anno"
+      :ordine="photos.ordine"
       :speciali="photos.soloSpeciali"
       :bozze="photos.stato === 'bozze'"
       @update:anno="onAnno"
+      @update:ordine="onOrdine"
       @update:speciali="onSpeciali"
       @update:bozze="onBozze"
     />
 
-    <!-- In cima alla timeline, ma non fra le bozze. -->
-    <OnThisDayStrip v-if="photos.stato !== 'bozze'" />
+    <!-- In cima alla timeline, ma non fra le bozze né partendo dal primo giorno. -->
+    <OnThisDayStrip v-if="photos.stato !== 'bozze' && photos.ordine === 'desc'" />
 
     <AppSpinner v-if="photos.loading" />
 
@@ -209,12 +218,10 @@ async function logout(): Promise<void> {
 
     <template v-else>
       <ul class="mt-2">
-        <TimelineItem
-          v-for="photo in photos.items"
-          :key="photo.id"
-          :photo="photo"
-          :protagonist="auth.family?.protagonist"
-        />
+        <template v-for="{ photo, year } in withYearBreaks(photos.items)" :key="photo.id">
+          <YearBreak v-if="year !== null && photos.anno === null" :year="year" />
+          <TimelineItem :photo="photo" :protagonist="auth.family?.protagonist" />
+        </template>
       </ul>
 
       <div ref="sentinel" aria-hidden="true" />
