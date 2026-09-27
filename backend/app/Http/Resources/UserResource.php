@@ -23,6 +23,8 @@ class UserResource extends JsonResource
             'name' => $this->name,
             'email' => $this->email,
             'role' => $this->role,
+            // Vede il pannello del servizio su photodaily.app/admin.
+            'super_admin' => (bool) $this->is_super_admin,
             // Promemoria serale: preferenze personali, l'orario è nel fuso della famiglia.
             // Nuova email in attesa di conferma (col link mandato a quell'indirizzo).
             'email_in_attesa' => $this->pending_email !== null && $this->pending_email_expires_at?->isFuture()

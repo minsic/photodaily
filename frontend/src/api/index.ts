@@ -1,6 +1,8 @@
 import { api } from './client'
 import type {
   AccessMode,
+  AdminFamily,
+  AdminPlan,
   CreatedInvite,
   Family,
   Invite,
@@ -111,6 +113,24 @@ export const auth = {
 
   me() {
     return api<{ data: User }>('/me').then((response) => response.data)
+  },
+}
+
+/** Pannello del servizio: solo super-admin, solo sull'indirizzo principale. */
+export const admin = {
+  families() {
+    return api<{ data: AdminFamily[] }>('/admin/famiglie').then((response) => response.data)
+  },
+
+  plans() {
+    return api<{ data: AdminPlan[] }>('/admin/piani').then((response) => response.data)
+  },
+
+  updateFamily(slug: string, payload: { plan?: string; sospesa?: boolean }) {
+    return api<{ data: AdminFamily }>(`/admin/famiglie/${encodeURIComponent(slug)}`, {
+      method: 'PATCH',
+      body: payload,
+    }).then((response) => response.data)
   },
 }
 

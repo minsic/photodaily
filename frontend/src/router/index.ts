@@ -13,6 +13,8 @@ declare module 'vue-router' {
     guest?: boolean
     /** Pagine riservate agli amministratori della famiglia. */
     admin?: boolean
+    /** Il pannello del servizio: super-admin, solo sull'indirizzo principale. */
+    superAdmin?: boolean
     /** Il lettore a schermo intero: si apre sopra la vista precedente. */
     reader?: boolean
     /** Viste sopra cui si può aprire il lettore (restano montate sotto). */
@@ -129,6 +131,12 @@ const router = createRouter({
       meta: { admin: true },
     },
     {
+      path: '/admin',
+      name: 'service-admin',
+      component: () => import('@/views/AdminView.vue'),
+      meta: { superAdmin: true },
+    },
+    {
       // Dal link mandato al nuovo indirizzo: ?token=…
       path: '/email/conferma',
       name: 'confirm-email',
@@ -242,6 +250,10 @@ router.beforeEach(async (to) => {
 
   if (!auth.isLoggedIn) {
     return { name: 'login', query: { redirect: to.fullPath } }
+  }
+
+  if (to.meta.superAdmin && !(auth.isSuperAdmin && site.kind === 'main')) {
+    return { name: 'timeline' }
   }
 
   // Le impostazioni famiglia sono solo per gli admin: l'API le rifiuterebbe

@@ -12,7 +12,7 @@ use Symfony\Component\HttpFoundation\Response;
 /**
  * Controlla l'accesso in sola lettura alle rotte pubbliche di una famiglia.
  *
- * Famiglia inesistente e famiglia in modalità "private" rispondono entrambe
+ * Famiglia inesistente, sospesa o in modalità "private" rispondono tutte
  * 404 identico: chi indovina uno slug non scopre né che esiste né come è
  * configurata. La famiglia risolta viene passata al controller.
  */
@@ -26,7 +26,7 @@ class EnsurePublicFamilyAccess
     {
         $family = Family::query()->where('slug', $request->route('family_slug'))->first();
 
-        abort_if($family === null || $family->access_mode === AccessMode::Private, 404);
+        abort_if($family === null || $family->access_mode === AccessMode::Private || $family->isSuspended(), 404);
 
         if ($family->access_mode === AccessMode::Password
             && ! $this->tokens->isValidFor($this->tokenFrom($request), $family)) {

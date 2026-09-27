@@ -26,7 +26,7 @@ class SendWeeklyDigests extends Command
     {
         $sent = 0;
 
-        foreach (Family::query()->get() as $family) {
+        foreach (Family::query()->active()->get() as $family) {
             $now = $family->now();
 
             if (! $now->isSunday() || $now->hour < self::HOUR) {

@@ -16,10 +16,12 @@ import { useRefreshWhenVisible } from '@/composables/useRefreshWhenVisible'
 import { useAuthStore } from '@/stores/auth'
 import { useIncomingFilesStore } from '@/stores/incomingFiles'
 import { usePhotosStore } from '@/stores/photos'
+import { useSiteStore } from '@/stores/site'
 import { describeStorage } from '@/utils/quota'
 
 const auth = useAuthStore()
 const photos = usePhotosStore()
+const site = useSiteStore()
 const router = useRouter()
 
 const menuOpen = ref(false)
@@ -160,6 +162,16 @@ async function logout(): Promise<void> {
       >
         <AppIcon name="settings" class="size-4" />
         Impostazioni famiglia
+      </RouterLink>
+
+      <RouterLink
+        v-if="auth.isSuperAdmin && site.kind === 'main'"
+        :to="{ name: 'service-admin' }"
+        class="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border-2 border-line py-2 font-bold"
+        @click="menuOpen = false"
+      >
+        <AppIcon name="grid" class="size-4" />
+        Pannello del servizio
       </RouterLink>
 
       <button

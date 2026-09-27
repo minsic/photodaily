@@ -28,6 +28,7 @@ class SendDailyReminders extends Command
         $users = User::query()
             ->where('reminder_enabled', true)
             ->whereHas('pushSubscriptions')
+            ->whereHas('family', fn ($query) => $query->active())
             ->with('family')
             ->get();
 

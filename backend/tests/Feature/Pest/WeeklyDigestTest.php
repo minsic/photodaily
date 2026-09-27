@@ -99,3 +99,11 @@ it('renders an email with thumbnails, missing days and the way to turn it off', 
             && substr_count($html, '<img src=') >= 3;
     });
 });
+
+it('skips suspended diaries', function () {
+    $this->family->forceFill(['suspended_at' => now()])->save();
+
+    $this->artisan('photos:send-weekly-digest')->assertSuccessful();
+
+    Notification::assertNothingSent();
+});

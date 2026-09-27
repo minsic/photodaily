@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\EmailChangeController;
 use App\Http\Controllers\Api\FamilyAccessController;
@@ -14,8 +15,10 @@ use App\Http\Controllers\Api\PublicPhotoController;
 use App\Http\Controllers\Api\PushController;
 use App\Http\Controllers\Api\RegistrationController;
 use App\Http\Controllers\Api\SiteController;
+use App\Http\Middleware\EnsureFamilyActive;
 use App\Http\Middleware\EnsureHostFamilyMember;
 use App\Http\Middleware\EnsurePublicFamilyAccess;
+use App\Http\Middleware\EnsureSuperAdmin;
 use Illuminate\Support\Facades\Route;
 
 // Di quale diario è l'host corrente (vedi ResolveHostFamily).
@@ -61,8 +64,9 @@ Route::prefix('public/{family_slug}')->group(function () {
 });
 
 // Tutto il resto richiede un token Sanctum: la famiglia è quella dell'utente autenticato.
-Route::middleware(['auth:sanctum', EnsureHostFamilyMember::class])->group(function () {
-    Route::post('/logout', [AuthController::class, 'logout']);
+Route::middleware(['auth:sanctum', EnsureHostFamilyMember::class, EnsureFamilyActive::class])->group(function () {
+    // Uscire si può anche con il diario sospeso.
+    Route::post('/logout', [AuthController::class, 'logout'])->withoutMiddleware(EnsureFamilyActive::class);
     Route::get('/me', [AuthController::class, 'me']);
     Route::patch('/me/promemoria', [PushController::class, 'updatePreferences']);
     Route::patch('/me', [ProfileController::class, 'update']);
@@ -91,4 +95,11 @@ Route::middleware(['auth:sanctum', EnsureHostFamilyMember::class])->group(functi
     Route::put('/photos/{photo}/cuore', [PhotoHeartController::class, 'store'])->where('photo', '[0-7][0-9a-hjkmnp-tv-zA-HJKMNP-TV-Z]{25}');
     Route::delete('/photos/{photo}/cuore', [PhotoHeartController::class, 'destroy'])->where('photo', '[0-7][0-9a-hjkmnp-tv-zA-HJKMNP-TV-Z]{25}');
     Route::apiResource('photos', PhotoController::class)->where(['photo' => '[0-7][0-9a-hjkmnp-tv-zA-HJKMNP-TV-Z]{25}']);
+});
+
+// Pannello del servizio, solo su photodaily.app e solo per i super-admin.
+Route::middleware(['auth:sanctum', EnsureSuperAdmin::class])->prefix('admin')->group(function () {
+    Route::get('/famiglie', [AdminController::class, 'families']);
+    Route::get('/piani', [AdminController::class, 'plans']);
+    Route::patch('/famiglie/{family:slug}', [AdminController::class, 'update']);
 });

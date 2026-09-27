@@ -67,6 +67,7 @@ class User extends Authenticatable
             'reminder_enabled' => 'boolean',
             'weekly_digest_enabled' => 'boolean',
             'pending_email_expires_at' => 'datetime',
+            'is_super_admin' => 'boolean',
         ];
     }
 }

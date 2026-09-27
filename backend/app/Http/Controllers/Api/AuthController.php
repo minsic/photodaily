@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Middleware\EnsureFamilyActive;
 use App\Http\Middleware\ResolveHostFamily;
 use App\Http\Requests\LoginRequest;
 use App\Http\Resources\UserResource;
@@ -31,6 +32,11 @@ class AuthController extends Controller
             throw ValidationException::withMessages([
                 'email' => 'Credenziali non valide.',
             ]);
+        }
+
+        // Solo dopo la password giusta: a chi non la conosce non si dice niente.
+        if ($user->family?->isSuspended()) {
+            throw ValidationException::withMessages(['email' => EnsureFamilyActive::MESSAGE]);
         }
 
         return response()->json([

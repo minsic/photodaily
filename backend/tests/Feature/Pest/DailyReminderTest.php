@@ -171,3 +171,13 @@ it('lets each user subscribe devices and choose the time', function () {
     // Le iscrizioni degli altri non si toccano.
     expect($this->user->pushSubscriptions()->count())->toBe(1);
 });
+
+it('stays quiet for suspended diaries', function () {
+    Notification::fake();
+    $this->family->forceFill(['suspended_at' => now()])->save();
+
+    atRomeTime('2026-03-14 20:31');
+    sendReminders();
+
+    Notification::assertNothingSent();
+});

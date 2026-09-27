@@ -58,8 +58,34 @@ export interface User {
   /** Nuova email in attesa di conferma col link mandato a quell'indirizzo. */
   email_in_attesa: string | null
   role: Role
+  /** Vede il pannello del servizio su /admin dell'indirizzo principale. */
+  super_admin: boolean
   promemoria: ReminderPreferences
   family?: Family
+}
+
+/** Un diario visto dal pannello del servizio: numeri, mai le foto. */
+export interface AdminFamily {
+  slug: string
+  name: string
+  url: string
+  access_mode: AccessMode
+  plan: string | null
+  photos_count: number
+  users_count: number
+  admins: string[]
+  storage_used_mb: number
+  last_upload_at: string | null
+  created_at: string
+  suspended_at: string | null
+}
+
+export interface AdminPlan {
+  slug: string
+  name: string
+  max_photos: number | null
+  max_storage_mb: number | null
+  is_active: boolean
 }
 
 export interface PhotoLink {

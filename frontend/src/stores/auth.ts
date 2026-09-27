@@ -14,6 +14,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   const isLoggedIn = computed(() => token.value !== null)
   const isAdmin = computed(() => user.value?.role === 'admin')
+  const isSuperAdmin = computed(() => user.value?.super_admin === true)
   const family = computed(() => user.value?.family ?? null)
 
   async function login(email: string, password: string): Promise<void> {
@@ -69,6 +70,7 @@ export const useAuthStore = defineStore('auth', () => {
     ready,
     isLoggedIn,
     isAdmin,
+    isSuperAdmin,
     family,
     login,
     applySession,

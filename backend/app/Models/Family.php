@@ -8,6 +8,8 @@ use Carbon\CarbonImmutable;
 use Database\Factories\FamilyFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Attributes\Scope;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -71,6 +73,22 @@ class Family extends Model
         static::creating(function (Family $family) {
             $family->plan_id ??= Plan::default()->id;
         });
+    }
+
+    public function isSuspended(): bool
+    {
+        return $this->suspended_at !== null;
+    }
+
+    /**
+     * Diari non sospesi: gli unici a cui arrivano promemoria e riepiloghi.
+     *
+     * @param  Builder<Family>  $query
+     */
+    #[Scope]
+    protected function active(Builder $query): void
+    {
+        $query->whereNull('suspended_at');
     }
 
     /**
@@ -267,6 +285,7 @@ class Family extends Model
         return [
             'storage_used_mb' => 'float',
             'access_mode' => AccessMode::class,
+            'suspended_at' => 'datetime',
         ];
     }
 }
