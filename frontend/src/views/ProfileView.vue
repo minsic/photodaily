@@ -4,6 +4,7 @@ import { RouterLink } from 'vue-router'
 import AppHeader from '@/components/AppHeader.vue'
 import AppIcon from '@/components/AppIcon.vue'
 import InstallGuide from '@/components/InstallGuide.vue'
+import AccountSettings from '@/components/AccountSettings.vue'
 import ReminderSettings from '@/components/ReminderSettings.vue'
 import WeeklyDigestSetting from '@/components/WeeklyDigestSetting.vue'
 import { useAuthStore } from '@/stores/auth'
@@ -30,6 +31,8 @@ const auth = useAuthStore()
       <h1 class="text-2xl font-bold tracking-tight">Impostazioni personali</h1>
       <p class="mt-1 text-sm text-muted">{{ auth.user?.name }} · {{ auth.user?.email }}</p>
     </header>
+
+    <AccountSettings />
 
     <ReminderSettings />
 

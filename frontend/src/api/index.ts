@@ -46,6 +46,24 @@ export const auth = {
     return api<void>('/logout', { method: 'POST' })
   },
 
+  /** Il proprio nome (quello accanto ai cuori e negli inviti). */
+  updateProfile(name: string) {
+    return api<{ data: User }>('/me', { method: 'PATCH', body: { name } }).then((response) => response.data)
+  },
+
+  /** Con la password attuale; chiude le sessioni sugli altri dispositivi. */
+  changePassword(payload: { password_attuale: string; password: string; password_confirmation: string }) {
+    return api<{ data: { sessioni_chiuse: number } }>('/me/password', { method: 'PUT', body: payload }).then(
+      (response) => response.data,
+    )
+  },
+
+  closeOtherSessions() {
+    return api<{ data: { sessioni_chiuse: number } }>('/me/sessioni', { method: 'DELETE' }).then(
+      (response) => response.data,
+    )
+  },
+
   /** Stessa risposta che l'account esista o no. */
   forgotPassword(email: string) {
     return api<{ message: string }>('/password/dimenticata', { method: 'POST', body: { email }, token: null })

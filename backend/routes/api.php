@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\InviteController;
 use App\Http\Controllers\Api\PasswordResetController;
 use App\Http\Controllers\Api\PhotoController;
 use App\Http\Controllers\Api\PhotoHeartController;
+use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\PublicAccessController;
 use App\Http\Controllers\Api\PublicPhotoController;
 use App\Http\Controllers\Api\PushController;
@@ -56,6 +57,9 @@ Route::middleware(['auth:sanctum', EnsureHostFamilyMember::class])->group(functi
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
     Route::patch('/me/promemoria', [PushController::class, 'updatePreferences']);
+    Route::patch('/me', [ProfileController::class, 'update']);
+    Route::put('/me/password', [ProfileController::class, 'updatePassword'])->middleware('throttle:login');
+    Route::delete('/me/sessioni', [ProfileController::class, 'destroyOtherSessions']);
 
     Route::get('/push/config', [PushController::class, 'config']);
     Route::post('/push/iscrizioni', [PushController::class, 'subscribe']);
