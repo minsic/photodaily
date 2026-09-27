@@ -47,6 +47,8 @@ const form = reactive({
 
 const image = ref<File | null>(null)
 const preview = ref<string | null>(null)
+/** Dita e non mouse: telefono o tablet, dove "capture" apre la fotocamera. */
+const hasCamera = typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches === true
 const missingImage = ref(false)
 
 const fileSize = computed(() => {
@@ -63,14 +65,24 @@ function onFileChange(event: Event): void {
   useFile((event.target as HTMLInputElement).files?.[0] ?? null)
 }
 
-function useFile(file: File | null): void {
+/** Appena scattata: il giorno è oggi anche se il file non ha la data di scatto. */
+function onCameraChange(event: Event): void {
+  const file = (event.target as HTMLInputElement).files?.[0] ?? null
+
+  useFile(file, { justTaken: true })
+}
+
+function useFile(file: File | null, { justTaken = false } = {}): void {
   releasePreview()
   image.value = file
   preview.value = file ? URL.createObjectURL(file) : null
   missingImage.value = false
   dateMissing.value = false
 
-  if (file && props.withImage && !dateTouched.value) {
+  if (file && justTaken && !dateTouched.value) {
+    form.data = today()
+    dateFromPhoto.value = false
+  } else if (file && props.withImage && !dateTouched.value) {
     void applyDateFromPhoto(file)
   }
 }
@@ -155,6 +167,25 @@ function fieldError(name: string): string | undefined {
           @change="onFileChange"
         />
       </label>
+
+      <!-- Sul telefono: fotocamera diretta (capture) o galleria, senza passare dal menu. -->
+      <div class="mt-3 grid gap-2" :class="hasCamera ? 'grid-cols-2' : 'grid-cols-1'">
+        <label
+          v-if="hasCamera"
+          class="flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-brick px-3 py-3 text-sm font-bold text-white focus-within:ring-2 focus-within:ring-brick/40"
+        >
+          <AppIcon name="camera" class="size-5" />
+          {{ image ? 'Scatta di nuovo' : 'Scatta una foto' }}
+          <input type="file" accept="image/*" capture="environment" class="sr-only" @change="onCameraChange" />
+        </label>
+        <label
+          class="flex cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-line px-3 py-3 text-sm font-bold focus-within:ring-2 focus-within:ring-brick/40"
+        >
+          <AppIcon name="grid" class="size-5" />
+          {{ image ? 'Cambia foto' : 'Scegli dalla galleria' }}
+          <input type="file" :accept="PHOTO_ACCEPT" class="sr-only" @change="onFileChange" />
+        </label>
+      </div>
 
       <p v-if="fileSize" class="mt-2 text-xs text-muted">{{ image?.name }} · {{ fileSize }}</p>
       <p v-if="missingImage" class="mt-2 text-sm text-brick">Serve una foto da caricare.</p>
